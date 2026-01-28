@@ -1,0 +1,26 @@
+server:
+  port: 12080
+
+spring:
+  application:
+    name: sherwood
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sherwood_db
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    out-of-order: true
+    sql-migration-prefix: T
+    table: flyway_schema_sherwood
+    validate-on-migrate: false
+
+
+logging:
+  level:
+    org:
+      springframework: INFO

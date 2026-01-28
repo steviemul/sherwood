@@ -1,0 +1,23 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    platform: linux/arm64
+    container_name: sherwood-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sherwood_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - sherwood-data:/var/lib/postgresql/data
+
+  ollama:
+    image: ollama/ollama:latest
+    platform: linux/arm64
+    container_name: sherwood-ollama
+    ports:
+      - "11434:11434"
+
+volumes:
+  sherwood-data: {}
