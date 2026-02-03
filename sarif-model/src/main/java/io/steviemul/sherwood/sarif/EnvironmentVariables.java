@@ -1,80 +1,78 @@
+
 package io.steviemul.sherwood.sarif;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import javax.annotation.processing.Generated;
+
 
 /**
- * The environment variables associated with the analysis tool process, expressed as key/value
- * pairs.
+ * The environment variables associated with the analysis tool process, expressed as key/value pairs.
+ * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({})
+@JsonPropertyOrder({
+
+})
 @Generated("jsonschema2pojo")
 public class EnvironmentVariables {
 
-  @JsonIgnore
-  private Map<String, String> additionalProperties = new LinkedHashMap<String, String>();
+    @JsonIgnore
+    private Map<String, String> additionalProperties = new LinkedHashMap<String, String>();
 
-  @JsonAnyGetter
-  public Map<String, String> getAdditionalProperties() {
-    return this.additionalProperties;
-  }
-
-  @JsonAnySetter
-  public void setAdditionalProperty(String name, String value) {
-    this.additionalProperties.put(name, value);
-  }
-
-  public EnvironmentVariables withAdditionalProperty(String name, String value) {
-    this.additionalProperties.put(name, value);
-    return this;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(EnvironmentVariables.class.getName())
-        .append('@')
-        .append(Integer.toHexString(System.identityHashCode(this)))
-        .append('[');
-    sb.append("additionalProperties");
-    sb.append('=');
-    sb.append(((this.additionalProperties == null) ? "<null>" : this.additionalProperties));
-    sb.append(',');
-    if (sb.charAt((sb.length() - 1)) == ',') {
-      sb.setCharAt((sb.length() - 1), ']');
-    } else {
-      sb.append(']');
+    @JsonAnyGetter
+    public Map<String, String> getAdditionalProperties() {
+        return this.additionalProperties;
     }
-    return sb.toString();
-  }
 
-  @Override
-  public int hashCode() {
-    int result = 1;
-    result =
-        ((result * 31)
-            + ((this.additionalProperties == null) ? 0 : this.additionalProperties.hashCode()));
-    return result;
-  }
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, String value) {
+        this.additionalProperties.put(name, value);
+    }
 
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
+    public EnvironmentVariables withAdditionalProperty(String name, String value) {
+        this.additionalProperties.put(name, value);
+        return this;
     }
-    if ((other instanceof EnvironmentVariables) == false) {
-      return false;
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(EnvironmentVariables.class.getName()).append('@').append(Integer.toHexString(System.identityHashCode(this))).append('[');
+        sb.append("additionalProperties");
+        sb.append('=');
+        sb.append(((this.additionalProperties == null)?"<null>":this.additionalProperties));
+        sb.append(',');
+        if (sb.charAt((sb.length()- 1)) == ',') {
+            sb.setCharAt((sb.length()- 1), ']');
+        } else {
+            sb.append(']');
+        }
+        return sb.toString();
     }
-    EnvironmentVariables rhs = ((EnvironmentVariables) other);
-    return ((this.additionalProperties == rhs.additionalProperties)
-        || ((this.additionalProperties != null)
-            && this.additionalProperties.equals(rhs.additionalProperties)));
-  }
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        result = ((result* 31)+((this.additionalProperties == null)? 0 :this.additionalProperties.hashCode()));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+        if ((other instanceof EnvironmentVariables) == false) {
+            return false;
+        }
+        EnvironmentVariables rhs = ((EnvironmentVariables) other);
+        return ((this.additionalProperties == rhs.additionalProperties)||((this.additionalProperties!= null)&&this.additionalProperties.equals(rhs.additionalProperties)));
+    }
+
 }

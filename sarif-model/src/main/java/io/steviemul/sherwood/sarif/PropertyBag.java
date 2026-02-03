@@ -1,5 +1,11 @@
+
 package io.steviemul.sherwood.sarif;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.processing.Generated;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -8,115 +14,123 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.processing.Generated;
 
-/** Key/value pairs that provide additional information about the object. */
+
+/**
+ * Key/value pairs that provide additional information about the object.
+ * 
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"tags"})
+@JsonPropertyOrder({
+    "tags"
+})
 @Generated("jsonschema2pojo")
 public class PropertyBag {
 
-  /** A set of distinct strings that provide additional information. */
-  @JsonProperty("tags")
-  @JsonDeserialize(as = java.util.LinkedHashSet.class)
-  @JsonPropertyDescription("A set of distinct strings that provide additional information.")
-  private Set<String> tags = new LinkedHashSet<String>();
+    /**
+     * A set of distinct strings that provide additional information.
+     * 
+     */
+    @JsonProperty("tags")
+    @JsonDeserialize(as = java.util.LinkedHashSet.class)
+    @JsonPropertyDescription("A set of distinct strings that provide additional information.")
+    private Set<String> tags = new LinkedHashSet<String>();
+    @JsonIgnore
+    private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
 
-  @JsonIgnore
-  private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
-
-  /** No args constructor for use in serialization */
-  public PropertyBag() {}
-
-  /**
-   * @param tags A set of distinct strings that provide additional information.
-   */
-  public PropertyBag(Set<String> tags) {
-    super();
-    this.tags = tags;
-  }
-
-  /** A set of distinct strings that provide additional information. */
-  @JsonProperty("tags")
-  public Set<String> getTags() {
-    return tags;
-  }
-
-  /** A set of distinct strings that provide additional information. */
-  @JsonProperty("tags")
-  public void setTags(Set<String> tags) {
-    this.tags = tags;
-  }
-
-  public PropertyBag withTags(Set<String> tags) {
-    this.tags = tags;
-    return this;
-  }
-
-  @JsonAnyGetter
-  public Map<String, Object> getAdditionalProperties() {
-    return this.additionalProperties;
-  }
-
-  @JsonAnySetter
-  public void setAdditionalProperty(String name, Object value) {
-    this.additionalProperties.put(name, value);
-  }
-
-  public PropertyBag withAdditionalProperty(String name, Object value) {
-    this.additionalProperties.put(name, value);
-    return this;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(PropertyBag.class.getName())
-        .append('@')
-        .append(Integer.toHexString(System.identityHashCode(this)))
-        .append('[');
-    sb.append("tags");
-    sb.append('=');
-    sb.append(((this.tags == null) ? "<null>" : this.tags));
-    sb.append(',');
-    sb.append("additionalProperties");
-    sb.append('=');
-    sb.append(((this.additionalProperties == null) ? "<null>" : this.additionalProperties));
-    sb.append(',');
-    if (sb.charAt((sb.length() - 1)) == ',') {
-      sb.setCharAt((sb.length() - 1), ']');
-    } else {
-      sb.append(']');
+    /**
+     * No args constructor for use in serialization
+     * 
+     */
+    public PropertyBag() {
     }
-    return sb.toString();
-  }
 
-  @Override
-  public int hashCode() {
-    int result = 1;
-    result = ((result * 31) + ((this.tags == null) ? 0 : this.tags.hashCode()));
-    result =
-        ((result * 31)
-            + ((this.additionalProperties == null) ? 0 : this.additionalProperties.hashCode()));
-    return result;
-  }
+    /**
+     * 
+     * @param tags
+     *     A set of distinct strings that provide additional information.
+     */
+    public PropertyBag(Set<String> tags) {
+        super();
+        this.tags = tags;
+    }
 
-  @Override
-  public boolean equals(Object other) {
-    if (other == this) {
-      return true;
+    /**
+     * A set of distinct strings that provide additional information.
+     * 
+     */
+    @JsonProperty("tags")
+    public Set<String> getTags() {
+        return tags;
     }
-    if ((other instanceof PropertyBag) == false) {
-      return false;
+
+    /**
+     * A set of distinct strings that provide additional information.
+     * 
+     */
+    @JsonProperty("tags")
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
     }
-    PropertyBag rhs = ((PropertyBag) other);
-    return (((this.tags == rhs.tags) || ((this.tags != null) && this.tags.equals(rhs.tags)))
-        && ((this.additionalProperties == rhs.additionalProperties)
-            || ((this.additionalProperties != null)
-                && this.additionalProperties.equals(rhs.additionalProperties))));
-  }
+
+    public PropertyBag withTags(Set<String> tags) {
+        this.tags = tags;
+        return this;
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> getAdditionalProperties() {
+        return this.additionalProperties;
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+        this.additionalProperties.put(name, value);
+    }
+
+    public PropertyBag withAdditionalProperty(String name, Object value) {
+        this.additionalProperties.put(name, value);
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(PropertyBag.class.getName()).append('@').append(Integer.toHexString(System.identityHashCode(this))).append('[');
+        sb.append("tags");
+        sb.append('=');
+        sb.append(((this.tags == null)?"<null>":this.tags));
+        sb.append(',');
+        sb.append("additionalProperties");
+        sb.append('=');
+        sb.append(((this.additionalProperties == null)?"<null>":this.additionalProperties));
+        sb.append(',');
+        if (sb.charAt((sb.length()- 1)) == ',') {
+            sb.setCharAt((sb.length()- 1), ']');
+        } else {
+            sb.append(']');
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        result = ((result* 31)+((this.tags == null)? 0 :this.tags.hashCode()));
+        result = ((result* 31)+((this.additionalProperties == null)? 0 :this.additionalProperties.hashCode()));
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+        if ((other instanceof PropertyBag) == false) {
+            return false;
+        }
+        PropertyBag rhs = ((PropertyBag) other);
+        return (((this.tags == rhs.tags)||((this.tags!= null)&&this.tags.equals(rhs.tags)))&&((this.additionalProperties == rhs.additionalProperties)||((this.additionalProperties!= null)&&this.additionalProperties.equals(rhs.additionalProperties))));
+    }
+
 }
