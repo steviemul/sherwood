@@ -3,6 +3,8 @@ package io.steviemul.sherwood.parsers.java;
 import io.steviemul.sherwood.parsers.*;
 import java.nio.file.Path;
 import java.util.*;
+
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 
 /**
@@ -31,7 +33,7 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
     if (ctx.identifier() != null && !ctx.identifier().isEmpty()) {
       currentPackage =
           ctx.identifier().stream()
-              .map(id -> id.getText())
+              .map(RuleContext::getText)
               .reduce((a, b) -> a + "." + b)
               .orElse("");
     }
@@ -58,7 +60,8 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
   public Void visitMethodDeclaration(Java20Parser.MethodDeclarationContext ctx) {
     if (ctx.methodHeader() != null && ctx.methodHeader().methodDeclarator() != null) {
       String methodName = ctx.methodHeader().methodDeclarator().identifier().getText();
-      currentMethod = getQualifiedName(methodName);
+      List<String> parameters = extractParameters(ctx.methodHeader().methodDeclarator());
+      currentMethod = getQualifiedName(methodName, parameters);
 
       Token start = ctx.getStart();
       Token stop = ctx.getStop();
@@ -69,7 +72,7 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
               currentMethod,
               start.getLine(),
               stop.getLine(),
-              extractParameters(ctx.methodHeader().methodDeclarator()),
+              parameters,
               new ArrayList<>(currentAnnotations)));
 
       currentAnnotations.clear();
@@ -90,7 +93,7 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
     return super.visitMethodInvocation(ctx);
   }
 
-  private String getQualifiedName(String methodName) {
+  private String getQualifiedName(String methodName, List<String> paramTypes) {
     StringBuilder sb = new StringBuilder();
     if (!currentPackage.isEmpty()) {
       sb.append(currentPackage).append(".");
@@ -99,17 +102,34 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
       sb.append(String.join(".", classStack)).append(".");
     }
     sb.append(methodName);
+    
+    // Add parameter types to create unique signature
+    sb.append("(");
+    sb.append(String.join(",", paramTypes));
+    sb.append(")");
+    
     return sb.toString();
   }
 
   private List<String> extractParameters(Java20Parser.MethodDeclaratorContext ctx) {
     List<String> params = new ArrayList<>();
-    if (ctx.receiverParameter() != null) {
-      params.add(ctx.receiverParameter().getText());
+    
+    if (ctx.receiverParameter() != null && ctx.receiverParameter().unannType() != null) {
+      params.add(ctx.receiverParameter().unannType().getText());
     }
+    
     if (ctx.formalParameterList() != null) {
-      params.add(ctx.formalParameterList().getText());
+      for (Java20Parser.FormalParameterContext param : ctx.formalParameterList().formalParameter()) {
+        if (param.unannType() != null) {
+          params.add(param.unannType().getText());
+        } else if (param.variableArityParameter() != null 
+                   && param.variableArityParameter().unannType() != null) {
+          // Handle varargs like String...
+          params.add(param.variableArityParameter().unannType().getText() + "...");
+        }
+      }
     }
+    
     return params;
   }
 

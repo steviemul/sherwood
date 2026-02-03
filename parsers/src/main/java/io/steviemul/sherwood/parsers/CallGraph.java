@@ -55,4 +55,116 @@ public class CallGraph {
   public Set<String> getAllMethods() {
     return adjacencyList.keySet();
   }
+
+  /**
+   * Export the call graph to DOT format (Graphviz). Can be visualized using Graphviz tools or
+   * online at https://dreampuf.github.io/GraphvizOnline/
+   *
+   * @return DOT format representation of the graph
+   */
+  public String toDot() {
+    StringBuilder dot = new StringBuilder();
+    dot.append("digraph CallGraph {\n");
+    dot.append("  rankdir=LR;\n");
+    dot.append("  node [shape=box, style=rounded];\n\n");
+
+    // Add all nodes and edges
+    for (Map.Entry<String, Set<String>> entry : adjacencyList.entrySet()) {
+      String caller = escapeForDot(entry.getKey());
+
+      for (String callee : entry.getValue()) {
+        String calleeEscaped = escapeForDot(callee);
+        dot.append("  \"").append(caller).append("\" -> \"").append(calleeEscaped).append("\";\n");
+      }
+    }
+
+    dot.append("}\n");
+    return dot.toString();
+  }
+
+  /**
+   * Export the call graph to Mermaid format. Can be visualized in GitHub markdown, VS Code, or at
+   * https://mermaid.live/
+   *
+   * @return Mermaid format representation of the graph
+   */
+  public String toMermaid() {
+    StringBuilder mermaid = new StringBuilder();
+    mermaid.append("graph LR\n");
+
+    // Create node IDs (mermaid needs short IDs)
+    Map<String, String> nodeIds = new HashMap<>();
+    int nodeCounter = 0;
+    for (String method : adjacencyList.keySet()) {
+      nodeIds.put(method, "N" + nodeCounter++);
+    }
+    for (Set<String> callees : adjacencyList.values()) {
+      for (String callee : callees) {
+        if (!nodeIds.containsKey(callee)) {
+          nodeIds.put(callee, "N" + nodeCounter++);
+        }
+      }
+    }
+
+    // Add node definitions with labels
+    for (Map.Entry<String, String> entry : nodeIds.entrySet()) {
+      String method = entry.getKey();
+      String nodeId = entry.getValue();
+      String label = escapeForMermaid(method);
+      mermaid.append("  ").append(nodeId).append("[\"").append(label).append("\"]\n");
+    }
+
+    mermaid.append("\n");
+
+    // Add edges
+    for (Map.Entry<String, Set<String>> entry : adjacencyList.entrySet()) {
+      String callerId = nodeIds.get(entry.getKey());
+
+      for (String callee : entry.getValue()) {
+        String calleeId = nodeIds.get(callee);
+        mermaid.append("  ").append(callerId).append(" --> ").append(calleeId).append("\n");
+      }
+    }
+
+    return mermaid.toString();
+  }
+
+  /**
+   * Export a simple text representation of the call graph.
+   *
+   * @return text representation of the graph
+   */
+  public String toText() {
+    StringBuilder text = new StringBuilder();
+    text.append("Call Graph:\n");
+    text.append("===========\n\n");
+
+    List<String> sortedMethods = new ArrayList<>(adjacencyList.keySet());
+    Collections.sort(sortedMethods);
+
+    for (String caller : sortedMethods) {
+      text.append(caller).append("\n");
+      Set<String> callees = adjacencyList.get(caller);
+      if (callees != null && !callees.isEmpty()) {
+        List<String> sortedCallees = new ArrayList<>(callees);
+        Collections.sort(sortedCallees);
+        for (String callee : sortedCallees) {
+          text.append("  -> ").append(callee).append("\n");
+        }
+      }
+      text.append("\n");
+    }
+
+    return text.toString();
+  }
+
+  private String escapeForDot(String s) {
+    // Escape quotes and backslashes for DOT format
+    return s.replace("\\", "\\\\").replace("\"", "\\\"");
+  }
+
+  private String escapeForMermaid(String s) {
+    // Escape quotes for Mermaid format
+    return s.replace("\"", "&quot;");
+  }
 }
