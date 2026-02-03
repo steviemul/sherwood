@@ -95,6 +95,16 @@ public record ReachabilityResult(
       }
     }
 
+    // Add edge from last node to code snippet if available
+    if (!allPaths.isEmpty() && !targetSnippet.isEmpty()) {
+      PathNode lastNode = allPaths.get(0).get(allPaths.get(0).size() - 1);
+      String lastNodeLabel = lastNode.format();
+      String snippetLine = getFirstCodeLine(targetSnippet);
+      String snippetEdge =
+          "  \"" + escapeDot(lastNodeLabel) + "\" -> \"" + escapeDot(snippetLine) + "\";";
+      edges.put(lastNodeLabel + "->snippet", snippetEdge);
+    }
+
     // Add all unique edges
     for (String edge : edges.values().stream().sorted().toList()) {
       dot.append(edge).append("\n");
@@ -137,6 +147,19 @@ public record ReachabilityResult(
       }
     }
 
+    // Add code snippet node if available
+    String snippetNodeId = null;
+    if (!targetSnippet.isEmpty()) {
+      snippetNodeId = "N" + nodeCounter++;
+      String snippetLabel = getFirstCodeLine(targetSnippet);
+      mermaid
+          .append("  ")
+          .append(snippetNodeId)
+          .append("[\"")
+          .append(escapeMermaid(snippetLabel))
+          .append("\"]\n");
+    }
+
     mermaid.append("\n");
 
     // Add edges
@@ -148,6 +171,22 @@ public record ReachabilityResult(
         String edge = "  " + nodeIds.get(from) + " --> " + nodeIds.get(to);
         edges.put(from + "->" + to, edge);
       }
+    }
+
+    // Add edge from last node to code snippet
+    if (snippetNodeId != null && !allPaths.isEmpty()) {
+      PathNode lastNode = allPaths.get(0).get(allPaths.get(0).size() - 1);
+      String lastNodeKey = lastNode.method().qualifiedName();
+      String snippetEdge = "  " + nodeIds.get(lastNodeKey) + " --> " + snippetNodeId;
+      edges.put(lastNodeKey + "->snippet", snippetEdge);
+    }
+
+    // Add edge from last node to code snippet
+    if (snippetNodeId != null && !allPaths.isEmpty()) {
+      PathNode lastNode = allPaths.get(0).get(allPaths.get(0).size() - 1);
+      String lastNodeKey = lastNode.method().qualifiedName();
+      String snippetEdge = "  " + nodeIds.get(lastNodeKey) + " --> " + snippetNodeId;
+      edges.put(lastNodeKey + "->snippet", snippetEdge);
     }
 
     for (String edge : edges.values().stream().sorted().collect(Collectors.toList())) {
@@ -190,6 +229,30 @@ public record ReachabilityResult(
     }
 
     return text.toString();
+  }
+
+  /**
+   * Get the target line from the snippet (the actual line where the issue is, not context lines).
+   * The snippet is formatted with context lines before and after, so the target is typically in the
+   * middle.
+   *
+   * @param snippet the code snippet with line numbers and context
+   * @return the target line with code, or empty string if none found
+   */
+  private static String getFirstCodeLine(String snippet) {
+    if (snippet == null || snippet.isEmpty()) {
+      return "";
+    }
+    // The snippet has contextLines before and after the target
+    // With default context of 2, the snippet has 5 lines and target is line 3 (index 2)
+    // Get the middle line which is the actual target line
+    List<String> lines = snippet.lines().filter(line -> !line.trim().isEmpty()).toList();
+    if (lines.isEmpty()) {
+      return "";
+    }
+    // Return the middle line (the target line)
+    int middleIndex = lines.size() / 2;
+    return lines.get(middleIndex);
   }
 
   private static String escapeDot(String text) {

@@ -82,7 +82,7 @@ public class Analyser {
 
       if (!result.getRuleId().startsWith("OPT.JAVA.")) continue;
 
-      Location location = getLocation(result, i);
+      Location location = getLocation(result);
 
       ReachabilityResult reachabilityResult = parser.findReachability(graph, parsedFiles, location);
 
@@ -124,11 +124,11 @@ public class Analyser {
     sarifResult.setProperties(properties);
   }
 
-  private Location getLocation(Result result, int i) {
+  private Location getLocation(Result result) {
     io.steviemul.sherwood.sarif.Location sarifLocation = result.getLocations().getFirst();
 
     // Convert SARIF location to parsers location
-    String uri = sarifLocation.getPhysicalLocation().getArtifactLocation().getUri().toString();
+    String uri = sarifLocation.getPhysicalLocation().getArtifactLocation().getUri();
     int lineNumber = sarifLocation.getPhysicalLocation().getRegion().getStartLine().intValue();
     Path filePath = sourceCodeRoot.resolve(uri);
 
@@ -147,6 +147,5 @@ public class Analyser {
         methodSignature.name(), methodSignature.qualifiedName(), methodSignature.parameters());
   }
 
-  private record OutputSignature(
-      String name, String qualifiedName, List<String> parameters) {}
+  private record OutputSignature(String name, String qualifiedName, List<String> parameters) {}
 }
