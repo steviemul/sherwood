@@ -191,4 +191,95 @@ class JavaLanguageParserTest {
         .contains("main")
         .contains("-> ");
   }
+
+  @Test
+  void testSourceCodeCapture() {
+    // Given: A sample Java file
+    Path testFile =
+        Paths.get("src/test/resources/SampleApp.java").toAbsolutePath().normalize();
+    JavaLanguageParser parser = new JavaLanguageParser();
+    ParsedFile parsedFile = parser.parse(testFile);
+
+    // When: Parse the file
+    List<MethodSignature> methods = parsedFile.methods();
+
+    // Then: Methods should have source code captured
+    assertThat(methods).isNotEmpty();
+    
+    MethodSignature mainMethod = methods.stream()
+        .filter(m -> m.name().equals("main"))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(mainMethod.sourceCode())
+        .isNotBlank()
+        .contains("public static void main")
+        .contains("processRequest");
+
+    System.out.println("\n=== Captured Method Source ===");
+    System.out.println("Method: " + mainMethod.name());
+    System.out.println("Lines: " + mainMethod.startLine() + "-" + mainMethod.endLine());
+    System.out.println("Source:\n" + mainMethod.sourceCode());
+
+    // When: Analyze reachability for a specific line
+    Location targetLocation = new Location(testFile, 16); // Line in executeLogic
+    ReachabilityResult result = parser.findReachability(List.of(parsedFile), targetLocation);
+
+    // Then: Target snippet should be captured with context
+    assertThat(result.isReachable()).isTrue();
+    assertThat(result.targetSnippet())
+        .isNotBlank()
+        .contains("16:"); // Should include line number
+
+    System.out.println("\n=== Target Snippet (with context) ===");
+    System.out.println(result.targetSnippet());
+  }
+
+  @Test
+  void testInitializerBlocks() {
+    // Given: A file with static/instance initializers
+    Path testFile =
+        Paths.get("src/test/resources/InitializerApp.java").toAbsolutePath().normalize();
+    JavaLanguageParser parser = new JavaLanguageParser();
+    ParsedFile parsedFile = parser.parse(testFile);
+
+    System.out.println("\n=== Testing Initializer Blocks ===");
+
+    // Case 1: Line in static field initializer (line 5)
+    Location staticFieldLocation = new Location(testFile, 5);
+    ReachabilityResult staticFieldResult =
+        parser.findReachability(List.of(parsedFile), staticFieldLocation);
+
+    System.out.println("\nStatic field initializer (line 5): " + staticFieldResult.isReachable());
+    System.out.println("Confidence: " + staticFieldResult.confidence());
+    
+    // Case 2: Line in static block (line 13)
+    Location staticBlockLocation = new Location(testFile, 13);
+    ReachabilityResult staticBlockResult =
+        parser.findReachability(List.of(parsedFile), staticBlockLocation);
+
+    System.out.println("\nStatic block (line 13): " + staticBlockResult.isReachable());
+    System.out.println("Confidence: " + staticBlockResult.confidence());
+
+    // Case 3: Line in instance field initializer (line 8)
+    Location instanceFieldLocation = new Location(testFile, 8);
+    ReachabilityResult instanceFieldResult =
+        parser.findReachability(List.of(parsedFile), instanceFieldLocation);
+
+    System.out.println("\nInstance field initializer (line 8): " + instanceFieldResult.isReachable());
+    System.out.println("Confidence: " + instanceFieldResult.confidence());
+
+    // Static initializers run at class load - confidence 1.0 (entry point level)
+    assertThat(staticFieldResult.isReachable()).isTrue();
+    assertThat(staticFieldResult.confidence()).isEqualTo(1.0);
+    assertThat(staticFieldResult.entryPoint().name()).isEqualTo("<clinit>");
+
+    assertThat(staticBlockResult.isReachable()).isTrue();
+    assertThat(staticBlockResult.confidence()).isEqualTo(1.0);
+
+    // Instance initializers run on construction - confidence 0.8 (high but not entry point)
+    assertThat(instanceFieldResult.isReachable()).isTrue();
+    assertThat(instanceFieldResult.confidence()).isEqualTo(0.8);
+    assertThat(instanceFieldResult.entryPoint().name()).isEqualTo("<init>");
+  }
 }

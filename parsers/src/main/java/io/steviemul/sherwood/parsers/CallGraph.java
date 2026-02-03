@@ -58,7 +58,7 @@ public class CallGraph {
 
   /**
    * Export the call graph to DOT format (Graphviz). Can be visualized using Graphviz tools or
-   * online at https://dreampuf.github.io/GraphvizOnline/
+   * online at <a href="https://dreampuf.github.io/GraphvizOnline/">...</a>
    *
    * @return DOT format representation of the graph
    */
@@ -84,7 +84,7 @@ public class CallGraph {
 
   /**
    * Export the call graph to Mermaid format. Can be visualized in GitHub markdown, VS Code, or at
-   * https://mermaid.live/
+   * <a href="https://mermaid.live/">...</a>
    *
    * @return Mermaid format representation of the graph
    */

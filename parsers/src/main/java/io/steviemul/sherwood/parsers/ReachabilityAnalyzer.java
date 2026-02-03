@@ -67,7 +67,10 @@ public class ReachabilityAnalyzer {
                 && targetLine <= method.endLine()) {
 
               return ReachabilityResult.reachableFromEntryPoint(
-                  entry, buildPath(graph, entry, method), List.of(buildPath(graph, entry, method)));
+                  entry,
+                  buildPath(graph, entry, method),
+                  List.of(buildPath(graph, entry, method)),
+                  "");
             }
           }
         }

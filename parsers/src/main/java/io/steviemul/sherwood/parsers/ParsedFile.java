@@ -11,6 +11,7 @@ import java.util.Map;
  * @param language programming language (e.g., "java", "python", "javascript")
  * @param methods list of methods/functions declared in the file
  * @param calls list of method/function calls made in the file
+ * @param codeBlocks list of non-method code blocks (initializers, field initializers)
  * @param metadata language-specific metadata (e.g., package name, imports)
  */
 public record ParsedFile(
@@ -18,4 +19,5 @@ public record ParsedFile(
     String language,
     List<MethodSignature> methods,
     List<MethodCall> calls,
+    List<CodeBlock> codeBlocks,
     Map<String, Object> metadata) {}

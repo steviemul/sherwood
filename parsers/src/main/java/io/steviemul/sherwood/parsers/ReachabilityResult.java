@@ -12,13 +12,16 @@ import java.util.List;
  *     non-entry method, 0.0 = not reachable
  * @param allPaths all paths found to the target (from entry points if confidence=1.0, from any
  *     method if confidence=0.5)
+ * @param targetSnippet the source code snippet at the target location (for display/comparison with
+ *     SARIF snippets)
  */
 public record ReachabilityResult(
     boolean isReachable,
     MethodSignature entryPoint,
     List<MethodSignature> path,
     double confidence,
-    List<List<MethodSignature>> allPaths) {
+    List<List<MethodSignature>> allPaths,
+    String targetSnippet) {
 
   /**
    * Create a result indicating the target is not reachable.
@@ -26,7 +29,7 @@ public record ReachabilityResult(
    * @return not reachable result with confidence 0.0
    */
   public static ReachabilityResult notReachable() {
-    return new ReachabilityResult(false, null, List.of(), 0.0, List.of());
+    return new ReachabilityResult(false, null, List.of(), 0.0, List.of(), "");
   }
 
   /**
@@ -35,13 +38,15 @@ public record ReachabilityResult(
    * @param entryPoint the entry point method
    * @param path the shortest path from entry point to target
    * @param allPaths all paths from entry points to target
+   * @param targetSnippet the source code at the target location
    * @return reachable result with confidence 1.0
    */
   public static ReachabilityResult reachableFromEntryPoint(
       MethodSignature entryPoint,
       List<MethodSignature> path,
-      List<List<MethodSignature>> allPaths) {
-    return new ReachabilityResult(true, entryPoint, path, 1.0, allPaths);
+      List<List<MethodSignature>> allPaths,
+      String targetSnippet) {
+    return new ReachabilityResult(true, entryPoint, path, 1.0, allPaths, targetSnippet);
   }
 
   /**
@@ -50,12 +55,14 @@ public record ReachabilityResult(
    * @param callingMethod a method that can reach the target
    * @param path a path to the target
    * @param allPaths all paths found to the target
+   * @param targetSnippet the source code at the target location
    * @return reachable result with confidence 0.5
    */
   public static ReachabilityResult reachableFromNonEntryPoint(
       MethodSignature callingMethod,
       List<MethodSignature> path,
-      List<List<MethodSignature>> allPaths) {
-    return new ReachabilityResult(true, callingMethod, path, 0.5, allPaths);
+      List<List<MethodSignature>> allPaths,
+      String targetSnippet) {
+    return new ReachabilityResult(true, callingMethod, path, 0.5, allPaths, targetSnippet);
   }
 }

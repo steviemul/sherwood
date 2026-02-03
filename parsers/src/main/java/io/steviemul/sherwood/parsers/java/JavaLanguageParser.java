@@ -27,6 +27,7 @@ public class JavaLanguageParser implements LanguageParser {
           "java",
           visitor.getMethods(),
           visitor.getCalls(),
+          visitor.getCodeBlocks(),
           Map.of("packageName", visitor.getPackageName()));
     } catch (IOException e) {
       throw new RuntimeException("Failed to parse " + filePath, e);
@@ -106,6 +107,45 @@ public class JavaLanguageParser implements LanguageParser {
     // Build the call graph
     CallGraph graph = buildCallGraph(files);
 
+    // First, check if target is in a code block (initializer)
+    CodeBlock targetBlock = findCodeBlockContainingLine(files, target);
+    if (targetBlock != null) {
+      String snippet = extractTargetSnippet(target);
+      // Static initializers and fields run at class load - very high confidence
+      if (targetBlock.type() == CodeBlock.BlockType.STATIC_INITIALIZER
+          || targetBlock.type() == CodeBlock.BlockType.STATIC_FIELD) {
+        // Create a pseudo-method signature for the static initializer
+        MethodSignature clinit =
+            new MethodSignature(
+                "<clinit>",
+                targetBlock.qualifiedName(),
+                targetBlock.startLine(),
+                targetBlock.endLine(),
+                List.of(),
+                List.of(),
+                targetBlock.sourceCode());
+        return ReachabilityResult.reachableFromEntryPoint(
+            clinit, List.of(clinit), List.of(List.of(clinit)), snippet);
+      }
+      // Instance initializers and fields run on construction - high confidence if constructor is called
+      if (targetBlock.type() == CodeBlock.BlockType.INSTANCE_INITIALIZER
+          || targetBlock.type() == CodeBlock.BlockType.INSTANCE_FIELD) {
+        // Check if any constructor is reachable
+        // For now, treat as reachable with 0.8 confidence (between entry point and internal)
+        MethodSignature init =
+            new MethodSignature(
+                "<init>",
+                targetBlock.qualifiedName(),
+                targetBlock.startLine(),
+                targetBlock.endLine(),
+                List.of(),
+                List.of(),
+                targetBlock.sourceCode());
+        // We could enhance this to check if constructor is actually called
+        return new ReachabilityResult(true, init, List.of(init), 0.8, List.of(List.of(init)), snippet);
+      }
+    }
+
     // Find the method containing the target line
     MethodSignature targetMethod = findMethodContainingLine(files, target);
     if (targetMethod == null) {
@@ -132,8 +172,9 @@ public class JavaLanguageParser implements LanguageParser {
 
     if (!pathsFromEntryPoints.isEmpty()) {
       // Reachable from entry point(s) - confidence 1.0
+      String snippet = extractTargetSnippet(target);
       return ReachabilityResult.reachableFromEntryPoint(
-          firstEntryPoint, pathsFromEntryPoints.get(0), pathsFromEntryPoints);
+          firstEntryPoint, pathsFromEntryPoints.get(0), pathsFromEntryPoints, snippet);
     }
 
     // Not reachable from entry points, check if reachable from any other method (confidence = 0.5)
@@ -159,12 +200,49 @@ public class JavaLanguageParser implements LanguageParser {
           }
         }
         
-        return ReachabilityResult.reachableFromNonEntryPoint(callerMethod, path, allPaths);
+        String snippet = extractTargetSnippet(target);
+        return ReachabilityResult.reachableFromNonEntryPoint(callerMethod, path, allPaths, snippet);
       }
     }
 
     // Not reachable at all - confidence 0.0
     return ReachabilityResult.notReachable();
+  }
+
+  /**
+   * Extract source code snippet at the target location (with context lines).
+   *
+   * @param target the target location
+   * @return the source code snippet (target line plus surrounding context)
+   */
+  private String extractTargetSnippet(Location target) {
+    return extractTargetSnippet(target, 2); // 2 lines of context by default
+  }
+
+  /**
+   * Extract source code snippet at the target location with specified context.
+   *
+   * @param target the target location
+   * @param contextLines number of lines before and after to include
+   * @return the source code snippet
+   */
+  private String extractTargetSnippet(Location target, int contextLines) {
+    try {
+      List<String> lines = Files.readAllLines(target.filePath());
+      int targetLineIdx = target.lineNumber() - 1; // Convert to 0-based
+      
+      int startIdx = Math.max(0, targetLineIdx - contextLines);
+      int endIdx = Math.min(lines.size(), targetLineIdx + contextLines + 1);
+      
+      StringBuilder snippet = new StringBuilder();
+      for (int i = startIdx; i < endIdx; i++) {
+        snippet.append(String.format("%4d: %s%n", i + 1, lines.get(i)));
+      }
+      
+      return snippet.toString();
+    } catch (IOException e) {
+      return ""; // Return empty string if unable to read
+    }
   }
 
   private MethodSignature findMethodContainingLine(List<ParsedFile> files, Location target) {
@@ -174,6 +252,20 @@ public class JavaLanguageParser implements LanguageParser {
           if (target.lineNumber() >= method.startLine()
               && target.lineNumber() <= method.endLine()) {
             return method;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private CodeBlock findCodeBlockContainingLine(List<ParsedFile> files, Location target) {
+    for (ParsedFile file : files) {
+      if (file.filePath().equals(target.filePath())) {
+        for (CodeBlock block : file.codeBlocks()) {
+          if (target.lineNumber() >= block.startLine()
+              && target.lineNumber() <= block.endLine()) {
+            return block;
           }
         }
       }
@@ -249,54 +341,5 @@ public class JavaLanguageParser implements LanguageParser {
 
     currentPath.remove(currentPath.size() - 1);
     visited.remove(current);
-  }
-
-  private List<MethodSignature> buildPath(
-      CallGraph graph, MethodSignature start, MethodSignature target, List<ParsedFile> files) {
-    // BFS to find shortest path
-    Map<String, String> parent = new HashMap<>();
-    Queue<String> queue = new LinkedList<>();
-    Set<String> visited = new HashSet<>();
-
-    queue.add(start.qualifiedName());
-    visited.add(start.qualifiedName());
-    parent.put(start.qualifiedName(), null);
-
-    while (!queue.isEmpty()) {
-      String current = queue.poll();
-
-      if (current.equals(target.qualifiedName())) {
-        // Reconstruct path
-        List<String> pathNames = new ArrayList<>();
-        String node = current;
-        while (node != null) {
-          pathNames.add(0, node);
-          node = parent.get(node);
-        }
-
-        // Convert qualified names back to MethodSignatures
-        Map<String, MethodSignature> methodIndex = new HashMap<>();
-        for (ParsedFile file : files) {
-          for (MethodSignature method : file.methods()) {
-            methodIndex.put(method.qualifiedName(), method);
-          }
-        }
-
-        return pathNames.stream()
-            .map(methodIndex::get)
-            .filter(Objects::nonNull)
-            .toList();
-      }
-
-      for (String callee : graph.getCallees(current)) {
-        if (visited.add(callee)) {
-          parent.put(callee, current);
-          queue.add(callee);
-        }
-      }
-    }
-
-    // No path found
-    return List.of();
   }
 }

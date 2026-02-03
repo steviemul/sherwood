@@ -11,6 +11,7 @@ import java.util.List;
  * @param endLine ending line number (1-based)
  * @param parameters list of parameter names or types
  * @param annotations list of annotations/decorators (e.g., "@RestController", "@Override")
+ * @param sourceCode the actual source code of the method (for display/comparison)
  */
 public record MethodSignature(
     String name,
@@ -18,4 +19,5 @@ public record MethodSignature(
     int startLine,
     int endLine,
     List<String> parameters,
-    List<String> annotations) {}
+    List<String> annotations,
+    String sourceCode) {}

@@ -18,6 +18,8 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
   private final List<MethodSignature> methods = new ArrayList<>();
   @lombok.Getter
   private final List<MethodCall> calls = new ArrayList<>();
+  @lombok.Getter
+  private final List<CodeBlock> codeBlocks = new ArrayList<>();
 
   private String currentPackage = "";
   private final Deque<String> classStack = new ArrayDeque<>();
@@ -66,6 +68,12 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
       Token start = ctx.getStart();
       Token stop = ctx.getStop();
 
+      // Extract source code from the token stream
+      String sourceCode = "";
+      if (start.getInputStream() != null) {
+        sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
+      }
+
       methods.add(
           new MethodSignature(
               methodName,
@@ -73,7 +81,8 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
               start.getLine(),
               stop.getLine(),
               parameters,
-              new ArrayList<>(currentAnnotations)));
+              new ArrayList<>(currentAnnotations),
+              sourceCode));
 
       currentAnnotations.clear();
       super.visitMethodDeclaration(ctx);
@@ -135,5 +144,93 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
 
   public String getPackageName() {
     return currentPackage;
+  }
+
+  @Override
+  public Void visitStaticInitializer(Java20Parser.StaticInitializerContext ctx) {
+    Token start = ctx.getStart();
+    Token stop = ctx.getStop();
+
+    String sourceCode = "";
+    if (start.getInputStream() != null) {
+      sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
+    }
+
+    String qualifiedName = getClassQualifiedName() + ".<clinit>";
+    codeBlocks.add(
+        new CodeBlock(
+            CodeBlock.BlockType.STATIC_INITIALIZER,
+            qualifiedName,
+            start.getLine(),
+            stop.getLine(),
+            sourceCode));
+
+    return super.visitStaticInitializer(ctx);
+  }
+
+  @Override
+  public Void visitInstanceInitializer(Java20Parser.InstanceInitializerContext ctx) {
+    Token start = ctx.getStart();
+    Token stop = ctx.getStop();
+
+    String sourceCode = "";
+    if (start.getInputStream() != null) {
+      sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
+    }
+
+    String qualifiedName = getClassQualifiedName() + ".<init>";
+    codeBlocks.add(
+        new CodeBlock(
+            CodeBlock.BlockType.INSTANCE_INITIALIZER,
+            qualifiedName,
+            start.getLine(),
+            stop.getLine(),
+            sourceCode));
+
+    return super.visitInstanceInitializer(ctx);
+  }
+
+  @Override
+  public Void visitFieldDeclaration(Java20Parser.FieldDeclarationContext ctx) {
+    // Check if field has initializer with method calls
+    if (ctx.variableDeclaratorList() != null) {
+      Token start = ctx.getStart();
+      Token stop = ctx.getStop();
+
+      String sourceCode = "";
+      if (start.getInputStream() != null) {
+        sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
+      }
+
+      // Determine if static or instance field
+      boolean isStatic = ctx.parent != null 
+          && ctx.parent.getText().contains("static");
+
+      String qualifiedName = getClassQualifiedName() + ".<field>";
+      CodeBlock.BlockType blockType = isStatic 
+          ? CodeBlock.BlockType.STATIC_FIELD 
+          : CodeBlock.BlockType.INSTANCE_FIELD;
+
+      codeBlocks.add(
+          new CodeBlock(
+              blockType,
+              qualifiedName,
+              start.getLine(),
+              stop.getLine(),
+              sourceCode));
+    }
+
+    return super.visitFieldDeclaration(ctx);
+  }
+
+  private String getClassQualifiedName() {
+    StringBuilder sb = new StringBuilder();
+    if (!currentPackage.isEmpty()) {
+      sb.append(currentPackage).append(".");
+    }
+    if (!classStack.isEmpty()) {
+      sb.append(String.join(".", classStack));
+    }
+    return sb.toString();
   }
 }
