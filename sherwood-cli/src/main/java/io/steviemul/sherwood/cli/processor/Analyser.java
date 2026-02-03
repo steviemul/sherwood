@@ -1,6 +1,6 @@
 package io.steviemul.sherwood.cli.processor;
 
-import io.steviemul.sherwood.cli.output.CliOutput;
+import io.steviemul.sherwood.cli.logging.Logger;
 import io.steviemul.sherwood.parsers.CallGraph;
 import io.steviemul.sherwood.parsers.LanguageParser;
 import io.steviemul.sherwood.parsers.Location;
@@ -36,13 +36,13 @@ public class Analyser {
 
   public void analyse() {
 
-    CliOutput.info("Reading source code");
+    Logger.info("Reading source code");
 
     RootScanner rootScanner = new RootScanner(sourceCodeRoot);
 
     List<Path> codeFiles = rootScanner.getAllMatchingFiles();
 
-    CliOutput.taskComplete("Found " + codeFiles.size() + " files");
+    Logger.taskComplete("Found " + codeFiles.size() + " files");
 
     SarifProcessor sarifProcessor = new SarifProcessor(sarifPath);
 
@@ -50,14 +50,14 @@ public class Analyser {
 
     List<Result> results = getResults(sarif);
 
-    CliOutput.taskComplete("Sarif read. Found " + results.size() + " results");
+    Logger.taskComplete("Sarif read. Found " + results.size() + " results");
 
     LanguageParser parser = languageParsers.get("java");
 
     List<ParsedFile> parsedFiles = new ArrayList<>();
 
     try (ProgressBar parsedFilesProgress =
-        CliOutput.createProgressBar("  Parsing Files", codeFiles.size())) {
+        Logger.createProgressBar("  Parsing Files", codeFiles.size())) {
 
       for (int i = 0; i < codeFiles.size(); i++) {
         parsedFiles.add(parser.parse(codeFiles.get(i)));
@@ -67,15 +67,15 @@ public class Analyser {
       }
     }
 
-    CliOutput.taskComplete("Parsed " + parsedFiles.size() + " files");
+    Logger.taskComplete("Parsed " + parsedFiles.size() + " files");
 
     CallGraph graph = parser.buildCallGraph(parsedFiles);
 
-    CliOutput.taskComplete("Built call graph");
+    Logger.taskComplete("Built call graph");
 
     List<ReachabilityResult> reachabilityResults = new ArrayList<>();
 
-    CliOutput.info("Performing reachability analysis on " + results.size() + " results");
+    Logger.info("Performing reachability analysis on " + results.size() + " results");
 
     for (int i = 0; i < results.size(); i++) {
       Result result = results.get(i);
@@ -91,11 +91,11 @@ public class Analyser {
       addReachabilityAnalysisToResult(result, reachabilityResult);
     }
 
-    CliOutput.taskComplete("Analysed " + reachabilityResults.size() + " results");
+    Logger.taskComplete("Analysed " + reachabilityResults.size() + " results");
 
     sarifProcessor.writeSarif(sarif, outputPath);
 
-    CliOutput.taskComplete("Updated sarif results written to " + outputPath);
+    Logger.taskComplete("Updated sarif results written to " + outputPath);
   }
 
   private void addReachabilityAnalysisToResult(

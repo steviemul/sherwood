@@ -1,6 +1,6 @@
 package io.steviemul.sherwood.cli.examples;
 
-import io.steviemul.sherwood.cli.output.CliOutput;
+import io.steviemul.sherwood.cli.logging.Logger;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import me.tongfei.progressbar.ProgressBar;
@@ -10,19 +10,19 @@ public class CliOutputExample {
 
   public static void main(String[] args) throws InterruptedException {
     // Print banner
-    CliOutput.printBanner();
+    Logger.printBanner();
 
     // Task messages
-    CliOutput.info("Starting analysis...");
+    Logger.info("Starting analysis...");
 
     // Simulate reading files
     System.out.print("Reading files from codebase... ");
     Thread.sleep(1000);
-    CliOutput.taskComplete("Reading files from codebase");
+    Logger.taskComplete("Reading files from codebase");
 
     // Progress bar example
     int totalResults = 100;
-    try (ProgressBar pb = CliOutput.createProgressBar("Processing SARIF results", totalResults)) {
+    try (ProgressBar pb = Logger.createProgressBar("Processing SARIF results", totalResults)) {
       for (int i = 0; i < totalResults; i++) {
         Thread.sleep(30);
         pb.step();
@@ -31,11 +31,11 @@ public class CliOutputExample {
     }
 
     // More task completions
-    CliOutput.taskComplete("Analyzed security findings");
-    CliOutput.taskComplete("Generated recommendations");
+    Logger.taskComplete("Analyzed security findings");
+    Logger.taskComplete("Generated recommendations");
 
     // Warning example
-    CliOutput.warning("Found 3 high-severity issues");
+    Logger.warning("Found 3 high-severity issues");
 
     // Summary table
     Map<String, String> summary = new LinkedHashMap<>();
@@ -47,9 +47,9 @@ public class CliOutputExample {
     summary.put("Low severity", "60");
     summary.put("Analysis duration", "2.3s");
 
-    CliOutput.printSummaryTable("Analysis Summary", summary);
+    Logger.printSummaryTable("Analysis Summary", summary);
 
     // Final message
-    CliOutput.taskComplete("Analysis complete");
+    Logger.taskComplete("Analysis complete");
   }
 }

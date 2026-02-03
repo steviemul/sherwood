@@ -1,7 +1,7 @@
 package io.steviemul.sherwood.cli.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.steviemul.sherwood.cli.output.CliOutput;
+import io.steviemul.sherwood.cli.logging.Logger;
 import io.steviemul.sherwood.sarif.SarifSchema210;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -31,7 +31,7 @@ public class SarifProcessor {
     try (OutputStream out = new FileOutputStream(outputPath.toFile())) {
       objectMapper.writerWithDefaultPrettyPrinter().writeValue(out, sarif);
     } catch (Exception e) {
-      CliOutput.error("Error outputting results " + e.getMessage());
+      Logger.error("Error outputting results " + e.getMessage());
     }
   }
 }
