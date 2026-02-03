@@ -40,6 +40,14 @@
       </plugin>
     </plugins>
   </build>
+  <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.34</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
   <properties>
     <picocli.version>4.7.5</picocli.version>
   </properties>

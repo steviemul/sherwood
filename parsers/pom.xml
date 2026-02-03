@@ -25,7 +25,7 @@
       <version>${antlr4.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.steviemul</groupId>
+      <groupId>io.steviemul.sherwood</groupId>
       <artifactId>sarif-model</artifactId>
       <version>${project.version}</version>
     </dependency>

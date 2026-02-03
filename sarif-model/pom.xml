@@ -33,7 +33,7 @@
         <configuration>
           <sourceDirectory>${basedir}/schema</sourceDirectory>
           <targetPackage>io.steviemul.sherwood.sarif</targetPackage>
-          <outputDirectory>${basedir}/src/main/java</outputDirectory>
+          <outputDirectory>${project.build.directory}/generated-sources/jsonschema2pojo</outputDirectory>
           <annotationStyle>jackson2</annotationStyle>
           <includeAdditionalProperties>true</includeAdditionalProperties>
           <includeConstructors>true</includeConstructors>
