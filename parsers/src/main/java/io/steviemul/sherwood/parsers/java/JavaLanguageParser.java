@@ -92,7 +92,7 @@ public class JavaLanguageParser implements LanguageParser {
     // 2. Check if that method is in the call graph
     // 3. Find entry points and trace reachability
     // For now, return not reachable
-    return new ReachabilityResult(false, null, List.of());
+    return ReachabilityResult.notReachable();
   }
 
   /**
@@ -100,47 +100,155 @@ public class JavaLanguageParser implements LanguageParser {
    *
    * @param files all parsed files in the project
    * @param target the target location to check
-   * @return reachability result with entry point and path if reachable
+   * @return reachability result with confidence score and all paths
    */
   public ReachabilityResult findReachability(List<ParsedFile> files, Location target) {
     // Build the call graph
     CallGraph graph = buildCallGraph(files);
 
     // Find the method containing the target line
-    MethodSignature targetMethod = null;
-    for (ParsedFile file : files) {
-      if (file.filePath().equals(target.filePath())) {
-        for (MethodSignature method : file.methods()) {
-          if (target.lineNumber() >= method.startLine()
-              && target.lineNumber() <= method.endLine()) {
-            targetMethod = method;
-            break;
-          }
-        }
-      }
-      if (targetMethod != null) break;
-    }
-
+    MethodSignature targetMethod = findMethodContainingLine(files, target);
     if (targetMethod == null) {
-      return new ReachabilityResult(false, null, List.of());
+      return ReachabilityResult.notReachable();
     }
 
     // Find all entry points
     List<MethodSignature> entryPoints =
         files.stream().flatMap(f -> findEntryPoints(f).stream()).toList();
 
-    // Check if target method is reachable from any entry point
-    for (MethodSignature entryPoint : entryPoints) {
-      Set<String> reachable = graph.findReachable(entryPoint.qualifiedName());
+    // First, check if reachable from any entry point (confidence = 1.0)
+    List<List<MethodSignature>> pathsFromEntryPoints = new ArrayList<>();
+    MethodSignature firstEntryPoint = null;
 
-      if (reachable.contains(targetMethod.qualifiedName())) {
-        // Found a path! Build it
-        List<MethodSignature> path = buildPath(graph, entryPoint, targetMethod, files);
-        return new ReachabilityResult(true, entryPoint, path);
+    for (MethodSignature entryPoint : entryPoints) {
+      List<List<MethodSignature>> paths = findAllPaths(graph, entryPoint, targetMethod, files);
+      if (!paths.isEmpty()) {
+        if (firstEntryPoint == null) {
+          firstEntryPoint = entryPoint;
+        }
+        pathsFromEntryPoints.addAll(paths);
       }
     }
 
-    return new ReachabilityResult(false, null, List.of());
+    if (!pathsFromEntryPoints.isEmpty()) {
+      // Reachable from entry point(s) - confidence 1.0
+      return ReachabilityResult.reachableFromEntryPoint(
+          firstEntryPoint, pathsFromEntryPoints.get(0), pathsFromEntryPoints);
+    }
+
+    // Not reachable from entry points, check if reachable from any other method (confidence = 0.5)
+    // Build reverse graph to find what can reach the target
+    Map<String, List<String>> callers = buildReverseGraph(graph);
+    List<String> methodsThatCallTarget = callers.get(targetMethod.qualifiedName());
+
+    if (methodsThatCallTarget != null && !methodsThatCallTarget.isEmpty()) {
+      // Target is called by some method, so it's reachable (just not from entry points)
+      // Find one path
+      String callerName = methodsThatCallTarget.get(0);
+      MethodSignature callerMethod = findMethodByQualifiedName(files, callerName);
+
+      if (callerMethod != null) {
+        List<MethodSignature> path = List.of(callerMethod, targetMethod);
+        List<List<MethodSignature>> allPaths = new ArrayList<>();
+        
+        // Find all direct callers
+        for (String caller : methodsThatCallTarget) {
+          MethodSignature callerSig = findMethodByQualifiedName(files, caller);
+          if (callerSig != null) {
+            allPaths.add(List.of(callerSig, targetMethod));
+          }
+        }
+        
+        return ReachabilityResult.reachableFromNonEntryPoint(callerMethod, path, allPaths);
+      }
+    }
+
+    // Not reachable at all - confidence 0.0
+    return ReachabilityResult.notReachable();
+  }
+
+  private MethodSignature findMethodContainingLine(List<ParsedFile> files, Location target) {
+    for (ParsedFile file : files) {
+      if (file.filePath().equals(target.filePath())) {
+        for (MethodSignature method : file.methods()) {
+          if (target.lineNumber() >= method.startLine()
+              && target.lineNumber() <= method.endLine()) {
+            return method;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private MethodSignature findMethodByQualifiedName(List<ParsedFile> files, String qualifiedName) {
+    for (ParsedFile file : files) {
+      for (MethodSignature method : file.methods()) {
+        if (method.qualifiedName().equals(qualifiedName)) {
+          return method;
+        }
+      }
+    }
+    return null;
+  }
+
+  private Map<String, List<String>> buildReverseGraph(CallGraph graph) {
+    Map<String, List<String>> reverse = new HashMap<>();
+    for (String caller : graph.getAllMethods()) {
+      for (String callee : graph.getCallees(caller)) {
+        reverse.computeIfAbsent(callee, k -> new ArrayList<>()).add(caller);
+      }
+    }
+    return reverse;
+  }
+
+  private List<List<MethodSignature>> findAllPaths(
+      CallGraph graph, MethodSignature start, MethodSignature target, List<ParsedFile> files) {
+    List<List<MethodSignature>> allPaths = new ArrayList<>();
+    List<String> currentPath = new ArrayList<>();
+    Set<String> visited = new HashSet<>();
+
+    findAllPathsDFS(
+        graph, start.qualifiedName(), target.qualifiedName(), currentPath, visited, allPaths, files);
+
+    return allPaths;
+  }
+
+  private void findAllPathsDFS(
+      CallGraph graph,
+      String current,
+      String target,
+      List<String> currentPath,
+      Set<String> visited,
+      List<List<MethodSignature>> allPaths,
+      List<ParsedFile> files) {
+
+    currentPath.add(current);
+    visited.add(current);
+
+    if (current.equals(target)) {
+      // Found a path - convert to MethodSignatures
+      List<MethodSignature> path = new ArrayList<>();
+      for (String methodName : currentPath) {
+        MethodSignature method = findMethodByQualifiedName(files, methodName);
+        if (method != null) {
+          path.add(method);
+        }
+      }
+      if (!path.isEmpty()) {
+        allPaths.add(path);
+      }
+    } else {
+      // Continue searching
+      for (String callee : graph.getCallees(current)) {
+        if (!visited.contains(callee)) {
+          findAllPathsDFS(graph, callee, target, currentPath, visited, allPaths, files);
+        }
+      }
+    }
+
+    currentPath.remove(currentPath.size() - 1);
+    visited.remove(current);
   }
 
   private List<MethodSignature> buildPath(

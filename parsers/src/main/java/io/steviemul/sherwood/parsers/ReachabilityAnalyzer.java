@@ -28,7 +28,7 @@ public class ReachabilityAnalyzer {
    */
   public ReachabilityResult analyzeResult(Result result, Path sourceRoot) {
     if (result.getLocations() == null || result.getLocations().isEmpty()) {
-      return new ReachabilityResult(false, null, List.of());
+      return ReachabilityResult.notReachable();
     }
 
     // Extract target location from result
@@ -41,7 +41,7 @@ public class ReachabilityAnalyzer {
     LanguageParser parser = languageParsers.get(language);
 
     if (parser == null) {
-      return new ReachabilityResult(false, null, List.of());
+      return ReachabilityResult.notReachable();
     }
 
     // Parse all files in project
@@ -66,14 +66,15 @@ public class ReachabilityAnalyzer {
                 && targetLine >= method.startLine()
                 && targetLine <= method.endLine()) {
 
-              return new ReachabilityResult(true, entry, buildPath(graph, entry, method));
+              return ReachabilityResult.reachableFromEntryPoint(
+                  entry, buildPath(graph, entry, method), List.of(buildPath(graph, entry, method)));
             }
           }
         }
       }
     }
 
-    return new ReachabilityResult(false, null, List.of());
+    return ReachabilityResult.notReachable();
   }
 
   private List<ParsedFile> parseProject(Path root, LanguageParser parser) {

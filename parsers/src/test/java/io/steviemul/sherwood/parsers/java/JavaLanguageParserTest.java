@@ -40,6 +40,8 @@ class JavaLanguageParserTest {
     assertThat(result.isReachable()).isTrue();
     assertThat(result.entryPoint()).isNotNull();
     assertThat(result.entryPoint().name()).isEqualTo("main");
+    assertThat(result.confidence()).isEqualTo(1.0); // Reachable from entry point
+    assertThat(result.allPaths()).isNotEmpty(); // Should have at least one path
 
     // The path should include: main -> processRequest -> executeLogic -> performCalculation
     assertThat(result.path())
@@ -57,6 +59,7 @@ class JavaLanguageParserTest {
     assertThat(unreachableResult.isReachable()).isFalse();
     assertThat(unreachableResult.entryPoint()).isNull();
     assertThat(unreachableResult.path()).isEmpty();
+    assertThat(unreachableResult.confidence()).isEqualTo(0.0); // Not reachable
   }
 
   @Test
@@ -102,6 +105,51 @@ class JavaLanguageParserTest {
 
     assertThat(result1.isReachable()).isTrue();
     assertThat(result2.isReachable()).isTrue();
+  }
+
+  @Test
+  void testConfidenceScoring() {
+    // Test case for confidence scoring:
+    // - Confidence 1.0: Reachable from entry point (main)
+    // - Confidence 0.5: Reachable from non-entry method
+    // - Confidence 0.0: Not reachable
+
+    Path testFile =
+        Paths.get("src/test/resources/InternalApp.java").toAbsolutePath().normalize();
+    JavaLanguageParser parser = new JavaLanguageParser();
+    ParsedFile parsedFile = parser.parse(testFile);
+
+    // Case 1: Method reachable from main (entry point) - confidence 1.0
+    Location publicLocation = new Location(testFile, 10); // processPublic method
+    ReachabilityResult publicResult = parser.findReachability(List.of(parsedFile), publicLocation);
+
+    assertThat(publicResult.isReachable()).isTrue();
+    assertThat(publicResult.confidence()).isEqualTo(1.0);
+    assertThat(publicResult.entryPoint().name()).isEqualTo("main");
+    System.out.println("\nPublic method (confidence 1.0): " + publicResult.path().stream()
+        .map(MethodSignature::name)
+        .toList());
+
+    // Case 2: Method reachable but NOT from entry point - confidence 0.5
+    Location internalLocation = new Location(testFile, 15); // internalHelper method
+    ReachabilityResult internalResult =
+        parser.findReachability(List.of(parsedFile), internalLocation);
+
+    assertThat(internalResult.isReachable()).isTrue();
+    assertThat(internalResult.confidence()).isEqualTo(0.5);
+    assertThat(internalResult.entryPoint().name()).isEqualTo("isolatedMethod");
+    System.out.println("\nInternal method (confidence 0.5): " + internalResult.path().stream()
+        .map(MethodSignature::name)
+        .toList());
+
+    // Case 3: Method that calls others but is itself not reachable - confidence 0.0
+    Location isolatedLocation = new Location(testFile, 20); // isolatedMethod itself
+    ReachabilityResult isolatedResult =
+        parser.findReachability(List.of(parsedFile), isolatedLocation);
+
+    assertThat(isolatedResult.isReachable()).isFalse();
+    assertThat(isolatedResult.confidence()).isEqualTo(0.0);
+    System.out.println("\nIsolated method (confidence 0.0): Not reachable");
   }
 
   @Test
