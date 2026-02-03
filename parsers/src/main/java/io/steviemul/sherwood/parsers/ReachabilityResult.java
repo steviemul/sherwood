@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
  *
  * @param isReachable whether the target is reachable from an entry point
  * @param entryPoint the entry point from which the target is reachable (null if not reachable)
- * @param path list of methods in the call path from entry point to target
+ * @param path list of path nodes in the call path from entry point to target
  * @param confidence confidence score: 1.0 = reachable from entry point, 0.5 = reachable from
  *     non-entry method, 0.0 = not reachable
  * @param allPaths all paths found to the target (from entry points if confidence=1.0, from any
@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
 public record ReachabilityResult(
     boolean isReachable,
     MethodSignature entryPoint,
-    List<MethodSignature> path,
+    List<PathNode> path,
     double confidence,
-    List<List<MethodSignature>> allPaths,
+    List<List<PathNode>> allPaths,
     String targetSnippet) {
 
   /**
@@ -46,8 +46,8 @@ public record ReachabilityResult(
    */
   public static ReachabilityResult reachableFromEntryPoint(
       MethodSignature entryPoint,
-      List<MethodSignature> path,
-      List<List<MethodSignature>> allPaths,
+      List<PathNode> path,
+      List<List<PathNode>> allPaths,
       String targetSnippet) {
     return new ReachabilityResult(true, entryPoint, path, 1.0, allPaths, targetSnippet);
   }
@@ -63,8 +63,8 @@ public record ReachabilityResult(
    */
   public static ReachabilityResult reachableFromNonEntryPoint(
       MethodSignature callingMethod,
-      List<MethodSignature> path,
-      List<List<MethodSignature>> allPaths,
+      List<PathNode> path,
+      List<List<PathNode>> allPaths,
       String targetSnippet) {
     return new ReachabilityResult(true, callingMethod, path, 0.5, allPaths, targetSnippet);
   }
@@ -81,22 +81,22 @@ public record ReachabilityResult(
 
     StringBuilder dot = new StringBuilder();
     dot.append("digraph ReachabilityGraph {\n");
-    dot.append("  rankdir=LR;\n");
+    dot.append("  rankdir=TD;\n");
     dot.append("  node [shape=box, style=rounded];\n\n");
 
     // Collect all unique edges from all paths
     Map<String, String> edges = new HashMap<>();
-    for (List<MethodSignature> path : allPaths) {
+    for (List<PathNode> path : allPaths) {
       for (int i = 0; i < path.size() - 1; i++) {
-        String from = path.get(i).qualifiedName();
-        String to = path.get(i + 1).qualifiedName();
+        String from = path.get(i).format();
+        String to = path.get(i + 1).format();
         String edge = "  \"" + escapeDot(from) + "\" -> \"" + escapeDot(to) + "\";";
         edges.put(from + "->" + to, edge);
       }
     }
 
     // Add all unique edges
-    for (String edge : edges.values().stream().sorted().collect(Collectors.toList())) {
+    for (String edge : edges.values().stream().sorted().toList()) {
       dot.append(edge).append("\n");
     }
 
@@ -111,26 +111,27 @@ public record ReachabilityResult(
    */
   public String toMermaid() {
     if (!isReachable || allPaths.isEmpty()) {
-      return "graph LR\n  N0[\"No reachable paths\"]\n";
+      return "graph TD\n  N0[\"No reachable paths\"]\n";
     }
 
     StringBuilder mermaid = new StringBuilder();
-    mermaid.append("graph LR\n");
+    mermaid.append("graph TD\n");
 
     // Create node IDs and declarations
     Map<String, String> nodeIds = new HashMap<>();
     int nodeCounter = 0;
 
-    for (List<MethodSignature> path : allPaths) {
-      for (MethodSignature method : path) {
-        if (!nodeIds.containsKey(method.qualifiedName())) {
+    for (List<PathNode> path : allPaths) {
+      for (PathNode node : path) {
+        String nodeKey = node.method().qualifiedName();
+        if (!nodeIds.containsKey(nodeKey)) {
           String nodeId = "N" + nodeCounter++;
-          nodeIds.put(method.qualifiedName(), nodeId);
+          nodeIds.put(nodeKey, nodeId);
           mermaid
               .append("  ")
               .append(nodeId)
               .append("[\"")
-              .append(escapeMermaid(method.qualifiedName()))
+              .append(escapeMermaid(node.format()))
               .append("\"]\n");
         }
       }
@@ -140,10 +141,10 @@ public record ReachabilityResult(
 
     // Add edges
     Map<String, String> edges = new HashMap<>();
-    for (List<MethodSignature> path : allPaths) {
+    for (List<PathNode> path : allPaths) {
       for (int i = 0; i < path.size() - 1; i++) {
-        String from = path.get(i).qualifiedName();
-        String to = path.get(i + 1).qualifiedName();
+        String from = path.get(i).method().qualifiedName();
+        String to = path.get(i + 1).method().qualifiedName();
         String edge = "  " + nodeIds.get(from) + " --> " + nodeIds.get(to);
         edges.put(from + "->" + to, edge);
       }
@@ -175,10 +176,10 @@ public record ReachabilityResult(
         .append("\n\n");
 
     for (int i = 0; i < allPaths.size(); i++) {
-      List<MethodSignature> path = allPaths.get(i);
+      List<PathNode> path = allPaths.get(i);
       text.append("Path ").append(i + 1).append(":\n");
       for (int j = 0; j < path.size(); j++) {
-        text.append("  ").append("  ".repeat(j)).append(path.get(j).qualifiedName());
+        text.append("  ").append("  ".repeat(j)).append(path.get(j).format());
         if (j < path.size() - 1) {
           text.append(" →\n");
         } else {

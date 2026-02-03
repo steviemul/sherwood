@@ -6,6 +6,7 @@ import io.steviemul.sherwood.parsers.LanguageParser;
 import io.steviemul.sherwood.parsers.Location;
 import io.steviemul.sherwood.parsers.MethodSignature;
 import io.steviemul.sherwood.parsers.ParsedFile;
+import io.steviemul.sherwood.parsers.PathNode;
 import io.steviemul.sherwood.parsers.ReachabilityResult;
 import io.steviemul.sherwood.sarif.PropertyBag;
 import io.steviemul.sherwood.sarif.Result;
@@ -138,12 +139,14 @@ public class Analyser {
     return sarifSchema210.getRuns().getFirst().getResults();
   }
 
-  private OutputSignature toOutputSignature(MethodSignature methodSignature) {
+  private OutputSignature toOutputSignature(PathNode pathNode) {
+
+    MethodSignature methodSignature = pathNode.method();
 
     return new OutputSignature(
         methodSignature.name(), methodSignature.qualifiedName(), methodSignature.parameters());
   }
 
-  private static record OutputSignature(
+  private record OutputSignature(
       String name, String qualifiedName, List<String> parameters) {}
 }

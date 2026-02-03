@@ -87,7 +87,7 @@ public class JavaLanguageParser implements LanguageParser {
         List<MethodSignature> candidates = methodsByName.get(call.methodName());
         if (candidates != null) {
           for (MethodSignature callee : candidates) {
-            graph.addEdge(call.context(), callee.qualifiedName());
+            graph.addEdge(call.context(), callee.qualifiedName(), call.lineNumber());
           }
         }
       }
@@ -138,8 +138,9 @@ public class JavaLanguageParser implements LanguageParser {
                 List.of(),
                 List.of(),
                 targetBlock.sourceCode());
+        PathNode clinitNode = PathNode.entryPoint(clinit);
         return ReachabilityResult.reachableFromEntryPoint(
-            clinit, List.of(clinit), List.of(List.of(clinit)), snippet);
+            clinit, List.of(clinitNode), List.of(List.of(clinitNode)), snippet);
       }
       // Instance initializers and fields run on construction - high confidence if constructor is called
       if (targetBlock.type() == CodeBlock.BlockType.INSTANCE_INITIALIZER
@@ -155,8 +156,9 @@ public class JavaLanguageParser implements LanguageParser {
                 List.of(),
                 List.of(),
                 targetBlock.sourceCode());
+        PathNode initNode = PathNode.entryPoint(init);
         // We could enhance this to check if constructor is actually called
-        return new ReachabilityResult(true, init, List.of(init), 0.8, List.of(List.of(init)), snippet);
+        return new ReachabilityResult(true, init, List.of(initNode), 0.8, List.of(List.of(initNode)), snippet);
       }
     }
 
@@ -171,11 +173,11 @@ public class JavaLanguageParser implements LanguageParser {
         files.stream().flatMap(f -> findEntryPoints(f).stream()).toList();
 
     // First, check if reachable from any entry point (confidence = 1.0)
-    List<List<MethodSignature>> pathsFromEntryPoints = new ArrayList<>();
+    List<List<PathNode>> pathsFromEntryPoints = new ArrayList<>();
     MethodSignature firstEntryPoint = null;
 
     for (MethodSignature entryPoint : entryPoints) {
-      List<List<MethodSignature>> paths = findAllPaths(graph, entryPoint, targetMethod, files);
+      List<List<PathNode>> paths = findAllPaths(graph, entryPoint, targetMethod, files);
       if (!paths.isEmpty()) {
         if (firstEntryPoint == null) {
           firstEntryPoint = entryPoint;
@@ -203,14 +205,36 @@ public class JavaLanguageParser implements LanguageParser {
       MethodSignature callerMethod = findMethodByQualifiedName(files, callerName);
 
       if (callerMethod != null) {
-        List<MethodSignature> path = List.of(callerMethod, targetMethod);
-        List<List<MethodSignature>> allPaths = new ArrayList<>();
+        // Find the invocation line from the caller to the target
+        Integer invokedAtLine = null;
+        for (CallEdge edge : graph.getCallees(callerName)) {
+          if (edge.callee().equals(targetMethod.qualifiedName())) {
+            invokedAtLine = edge.invokedAtLine();
+            break;
+          }
+        }
         
-        // Find all direct callers
+        List<PathNode> path = List.of(
+            PathNode.entryPoint(callerMethod), 
+            PathNode.invoked(targetMethod, invokedAtLine != null ? invokedAtLine : targetMethod.startLine())
+        );
+        List<List<PathNode>> allPaths = new ArrayList<>();
+        
+        // Find all direct callers with their invocation lines
         for (String caller : methodsThatCallTarget) {
           MethodSignature callerSig = findMethodByQualifiedName(files, caller);
           if (callerSig != null) {
-            allPaths.add(List.of(callerSig, targetMethod));
+            Integer invocationLine = null;
+            for (CallEdge edge : graph.getCallees(caller)) {
+              if (edge.callee().equals(targetMethod.qualifiedName())) {
+                invocationLine = edge.invokedAtLine();
+                break;
+              }
+            }
+            allPaths.add(List.of(
+                PathNode.entryPoint(callerSig), 
+                PathNode.invoked(targetMethod, invocationLine != null ? invocationLine : targetMethod.startLine())
+            ));
           }
         }
         
@@ -301,16 +325,16 @@ public class JavaLanguageParser implements LanguageParser {
   private Map<String, List<String>> buildReverseGraph(CallGraph graph) {
     Map<String, List<String>> reverse = new HashMap<>();
     for (String caller : graph.getAllMethods()) {
-      for (String callee : graph.getCallees(caller)) {
-        reverse.computeIfAbsent(callee, k -> new ArrayList<>()).add(caller);
+      for (CallEdge edge : graph.getCallees(caller)) {
+        reverse.computeIfAbsent(edge.callee(), k -> new ArrayList<>()).add(caller);
       }
     }
     return reverse;
   }
 
-  private List<List<MethodSignature>> findAllPaths(
+  private List<List<PathNode>> findAllPaths(
       CallGraph graph, MethodSignature start, MethodSignature target, List<ParsedFile> files) {
-    List<List<MethodSignature>> allPaths = new ArrayList<>();
+    List<List<PathNode>> allPaths = new ArrayList<>();
     List<String> currentPath = new ArrayList<>();
     Set<String> visited = new HashSet<>();
 
@@ -326,19 +350,34 @@ public class JavaLanguageParser implements LanguageParser {
       String target,
       List<String> currentPath,
       Set<String> visited,
-      List<List<MethodSignature>> allPaths,
+      List<List<PathNode>> allPaths,
       List<ParsedFile> files) {
 
     currentPath.add(current);
     visited.add(current);
 
     if (current.equals(target)) {
-      // Found a path - convert to MethodSignatures
-      List<MethodSignature> path = new ArrayList<>();
-      for (String methodName : currentPath) {
+      // Found a path - convert to PathNodes with invocation line numbers
+      List<PathNode> path = new ArrayList<>();
+      for (int i = 0; i < currentPath.size(); i++) {
+        String methodName = currentPath.get(i);
         MethodSignature method = findMethodByQualifiedName(files, methodName);
         if (method != null) {
-          path.add(method);
+          if (i == 0) {
+            // First method in path (entry point) - no invocation line
+            path.add(PathNode.entryPoint(method));
+          } else {
+            // Find the invocation line from the previous method
+            String caller = currentPath.get(i - 1);
+            Integer invokedAtLine = null;
+            for (CallEdge edge : graph.getCallees(caller)) {
+              if (edge.callee().equals(methodName)) {
+                invokedAtLine = edge.invokedAtLine();
+                break;
+              }
+            }
+            path.add(PathNode.invoked(method, invokedAtLine != null ? invokedAtLine : method.startLine()));
+          }
         }
       }
       if (!path.isEmpty()) {
@@ -346,9 +385,9 @@ public class JavaLanguageParser implements LanguageParser {
       }
     } else {
       // Continue searching
-      for (String callee : graph.getCallees(current)) {
-        if (!visited.contains(callee)) {
-          findAllPathsDFS(graph, callee, target, currentPath, visited, allPaths, files);
+      for (CallEdge edge : graph.getCallees(current)) {
+        if (!visited.contains(edge.callee())) {
+          findAllPathsDFS(graph, edge.callee(), target, currentPath, visited, allPaths, files);
         }
       }
     }

@@ -110,8 +110,7 @@ public class ReachabilityAnalyzer {
     return "unknown";
   }
 
-  private List<MethodSignature> buildPath(
-      CallGraph graph, MethodSignature start, MethodSignature target) {
+  private List<PathNode> buildPath(CallGraph graph, MethodSignature start, MethodSignature target) {
     // BFS to find shortest path for CodeFlow visualization
     Map<String, String> parent = new HashMap<>();
     Queue<String> queue = new LinkedList<>();
@@ -133,14 +132,14 @@ public class ReachabilityAnalyzer {
           node = parent.get(node);
         }
 
-        // Convert to MethodSignature list (simplified - would need method lookup)
-        return List.of(start, target);
+        // Convert to PathNode list (simplified - would need method lookup for proper line numbers)
+        return List.of(PathNode.entryPoint(start), PathNode.invoked(target, target.startLine()));
       }
 
-      for (String callee : graph.getCallees(current)) {
-        if (visited.add(callee)) {
-          parent.put(callee, current);
-          queue.add(callee);
+      for (CallEdge edge : graph.getCallees(current)) {
+        if (visited.add(edge.callee())) {
+          parent.put(edge.callee(), current);
+          queue.add(edge.callee());
         }
       }
     }

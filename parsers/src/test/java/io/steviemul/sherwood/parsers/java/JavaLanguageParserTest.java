@@ -46,7 +46,7 @@ class JavaLanguageParserTest {
     // The path should include: main -> processRequest -> executeLogic -> performCalculation
     assertThat(result.path())
         .hasSize(4)
-        .extracting(MethodSignature::name)
+        .extracting(node -> node.method().name())
         .containsExactly("main", "processRequest", "executeLogic", "performCalculation");
 
     // When: We check if unreachableMethod (line 28, inside the method body) is reachable from
@@ -127,7 +127,7 @@ class JavaLanguageParserTest {
     assertThat(publicResult.confidence()).isEqualTo(1.0);
     assertThat(publicResult.entryPoint().name()).isEqualTo("main");
     System.out.println("\nPublic method (confidence 1.0): " + publicResult.path().stream()
-        .map(MethodSignature::name)
+        .map(node -> node.method().name())
         .toList());
 
     // Case 2: Method reachable but NOT from entry point - confidence 0.5
@@ -139,7 +139,7 @@ class JavaLanguageParserTest {
     assertThat(internalResult.confidence()).isEqualTo(0.5);
     assertThat(internalResult.entryPoint().name()).isEqualTo("isolatedMethod");
     System.out.println("\nInternal method (confidence 0.5): " + internalResult.path().stream()
-        .map(MethodSignature::name)
+        .map(node -> node.method().name())
         .toList());
 
     // Case 3: Method that calls others but is itself not reachable - confidence 0.0
@@ -366,7 +366,7 @@ class JavaLanguageParserTest {
     System.out.println(mermaidFormat);
 
     assertThat(mermaidFormat)
-        .contains("graph LR")
+        .contains("graph TD")
         .contains("main")
         .contains("performCalculation")
         .contains("-->");

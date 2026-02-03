@@ -4,25 +4,28 @@ import java.util.*;
 
 /** Directed graph representing method call relationships. Edges point from caller to callee. */
 public class CallGraph {
-  private final Map<String, Set<String>> adjacencyList = new HashMap<>();
+  private final Map<String, Set<CallEdge>> adjacencyList = new HashMap<>();
 
   /**
    * Add a call edge from caller to callee.
    *
    * @param caller qualified name of the calling method
    * @param callee qualified name of the called method
+   * @param invokedAtLine line number where the call occurs
    */
-  public void addEdge(String caller, String callee) {
-    adjacencyList.computeIfAbsent(caller, k -> new HashSet<>()).add(callee);
+  public void addEdge(String caller, String callee, int invokedAtLine) {
+    adjacencyList
+        .computeIfAbsent(caller, k -> new HashSet<>())
+        .add(new CallEdge(callee, invokedAtLine));
   }
 
   /**
    * Get all methods directly called by the given method.
    *
    * @param method qualified method name
-   * @return set of called methods
+   * @return set of call edges
    */
-  public Set<String> getCallees(String method) {
+  public Set<CallEdge> getCallees(String method) {
     return adjacencyList.getOrDefault(method, Set.of());
   }
 
@@ -40,7 +43,9 @@ public class CallGraph {
     while (!queue.isEmpty()) {
       String current = queue.poll();
       if (visited.add(current)) {
-        queue.addAll(getCallees(current));
+        for (CallEdge edge : getCallees(current)) {
+          queue.add(edge.callee());
+        }
       }
     }
 
@@ -69,11 +74,11 @@ public class CallGraph {
     dot.append("  node [shape=box, style=rounded];\n\n");
 
     // Add all nodes and edges
-    for (Map.Entry<String, Set<String>> entry : adjacencyList.entrySet()) {
+    for (Map.Entry<String, Set<CallEdge>> entry : adjacencyList.entrySet()) {
       String caller = escapeForDot(entry.getKey());
 
-      for (String callee : entry.getValue()) {
-        String calleeEscaped = escapeForDot(callee);
+      for (CallEdge edge : entry.getValue()) {
+        String calleeEscaped = escapeForDot(edge.callee());
         dot.append("  \"").append(caller).append("\" -> \"").append(calleeEscaped).append("\";\n");
       }
     }
@@ -98,10 +103,10 @@ public class CallGraph {
     for (String method : adjacencyList.keySet()) {
       nodeIds.put(method, "N" + nodeCounter++);
     }
-    for (Set<String> callees : adjacencyList.values()) {
-      for (String callee : callees) {
-        if (!nodeIds.containsKey(callee)) {
-          nodeIds.put(callee, "N" + nodeCounter++);
+    for (Set<CallEdge> callees : adjacencyList.values()) {
+      for (CallEdge edge : callees) {
+        if (!nodeIds.containsKey(edge.callee())) {
+          nodeIds.put(edge.callee(), "N" + nodeCounter++);
         }
       }
     }
@@ -117,11 +122,11 @@ public class CallGraph {
     mermaid.append("\n");
 
     // Add edges
-    for (Map.Entry<String, Set<String>> entry : adjacencyList.entrySet()) {
+    for (Map.Entry<String, Set<CallEdge>> entry : adjacencyList.entrySet()) {
       String callerId = nodeIds.get(entry.getKey());
 
-      for (String callee : entry.getValue()) {
-        String calleeId = nodeIds.get(callee);
+      for (CallEdge edge : entry.getValue()) {
+        String calleeId = nodeIds.get(edge.callee());
         mermaid.append("  ").append(callerId).append(" --> ").append(calleeId).append("\n");
       }
     }
@@ -144,9 +149,12 @@ public class CallGraph {
 
     for (String caller : sortedMethods) {
       text.append(caller).append("\n");
-      Set<String> callees = adjacencyList.get(caller);
+      Set<CallEdge> callees = adjacencyList.get(caller);
       if (callees != null && !callees.isEmpty()) {
-        List<String> sortedCallees = new ArrayList<>(callees);
+        List<String> sortedCallees = new ArrayList<>();
+        for (CallEdge edge : callees) {
+          sortedCallees.add(edge.callee());
+        }
         Collections.sort(sortedCallees);
         for (String callee : sortedCallees) {
           text.append("  -> ").append(callee).append("\n");
