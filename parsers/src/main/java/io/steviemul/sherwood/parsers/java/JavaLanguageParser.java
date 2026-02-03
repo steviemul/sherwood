@@ -13,14 +13,7 @@ public class JavaLanguageParser implements LanguageParser {
   public ParsedFile parse(Path filePath) {
     try {
       CharStream input = CharStreams.fromPath(filePath);
-      Java20Lexer lexer = new Java20Lexer(input);
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      Java20Parser parser = new Java20Parser(tokens);
-
-      ParseTree tree = parser.compilationUnit();
-
-      JavaStructureVisitor visitor = new JavaStructureVisitor(filePath);
-      visitor.visit(tree);
+      JavaStructureVisitor visitor = getJavaStructureVisitor(filePath, input);
 
       return new ParsedFile(
           filePath,
@@ -32,6 +25,23 @@ public class JavaLanguageParser implements LanguageParser {
     } catch (IOException e) {
       throw new RuntimeException("Failed to parse " + filePath, e);
     }
+  }
+
+  private static JavaStructureVisitor getJavaStructureVisitor(Path filePath, CharStream input) {
+    Java20Lexer lexer = new Java20Lexer(input);
+    // Remove default console error listener to suppress parse error messages
+    lexer.removeErrorListeners();
+
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    Java20Parser parser = new Java20Parser(tokens);
+    // Remove default console error listener to suppress parse error messages
+    parser.removeErrorListeners();
+
+    ParseTree tree = parser.compilationUnit();
+
+    JavaStructureVisitor visitor = new JavaStructureVisitor(filePath);
+    visitor.visit(tree);
+    return visitor;
   }
 
   @Override
@@ -96,6 +106,12 @@ public class JavaLanguageParser implements LanguageParser {
     return ReachabilityResult.notReachable();
   }
 
+  public ReachabilityResult findReachability(List<ParsedFile> files, Location target) {
+
+    CallGraph graph = buildCallGraph(files);
+
+    return findReachability(graph, files, target);
+  }
   /**
    * Find if a method containing the target line is reachable from entry points.
    *
@@ -103,9 +119,7 @@ public class JavaLanguageParser implements LanguageParser {
    * @param target the target location to check
    * @return reachability result with confidence score and all paths
    */
-  public ReachabilityResult findReachability(List<ParsedFile> files, Location target) {
-    // Build the call graph
-    CallGraph graph = buildCallGraph(files);
+  public ReachabilityResult findReachability(CallGraph graph, List<ParsedFile> files, Location target) {
 
     // First, check if target is in a code block (initializer)
     CodeBlock targetBlock = findCodeBlockContainingLine(files, target);

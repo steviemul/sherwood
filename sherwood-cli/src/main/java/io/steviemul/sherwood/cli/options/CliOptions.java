@@ -1,4 +1,4 @@
-package io.steviemul.sherwood.cli;
+package io.steviemul.sherwood.cli.options;
 
 import java.nio.file.Path;
 import lombok.Getter;

@@ -282,4 +282,115 @@ class JavaLanguageParserTest {
     assertThat(instanceFieldResult.confidence()).isEqualTo(0.8);
     assertThat(instanceFieldResult.entryPoint().name()).isEqualTo("<init>");
   }
+
+  @Test
+  void testAnnotationLines() {
+    // Given: A file with annotated methods
+    Path testFile =
+        Paths.get("src/test/resources/AnnotatedMethodApp.java").toAbsolutePath().normalize();
+    JavaLanguageParser parser = new JavaLanguageParser();
+    ParsedFile parsedFile = parser.parse(testFile);
+
+    System.out.println("\n=== Testing Annotation Line Handling ===");
+
+    // Find the getUsers method
+    MethodSignature getUsersMethod = parsedFile.methods().stream()
+        .filter(m -> m.name().equals("getUsers"))
+        .findFirst()
+        .orElseThrow();
+
+    System.out.println("\nMethod: " + getUsersMethod.name());
+    System.out.println("Start line: " + getUsersMethod.startLine());
+    System.out.println("End line: " + getUsersMethod.endLine());
+    System.out.println("Annotations: " + getUsersMethod.annotations());
+
+    // The method has annotations on lines 5-6, declaration on line 7
+    // Start line should be 5 (first annotation), not 7
+    assertThat(getUsersMethod.startLine()).isEqualTo(5);
+    assertThat(getUsersMethod.endLine()).isEqualTo(9);
+    assertThat(getUsersMethod.annotations()).hasSize(2);
+
+    // Case: SARIF result points to annotation line (line 5)
+    Location annotationLocation = new Location(testFile, 5);
+    ReachabilityResult annotationResult =
+        parser.findReachability(List.of(parsedFile), annotationLocation);
+
+    System.out.println("\nAnnotation line (line 5): " + annotationResult.isReachable());
+    System.out.println("Confidence: " + annotationResult.confidence());
+
+    // Should find the method since annotations are now included in line range
+    assertThat(annotationResult.isReachable()).isTrue();
+    assertThat(annotationResult.confidence()).isEqualTo(1.0); // Entry point (has @RequestMapping)
+
+    // Case: SARIF result points to second annotation line (line 6)
+    Location secondAnnotationLocation = new Location(testFile, 6);
+    ReachabilityResult secondAnnotationResult =
+        parser.findReachability(List.of(parsedFile), secondAnnotationLocation);
+
+    assertThat(secondAnnotationResult.isReachable()).isTrue();
+    assertThat(secondAnnotationResult.confidence()).isEqualTo(1.0);
+  }
+
+  @Test
+  void testReachabilityResultVisualization() {
+    // Given: A sample Java file with reachable methods
+    Path testFile =
+        Paths.get("src/test/resources/SampleApp.java").toAbsolutePath().normalize();
+    JavaLanguageParser parser = new JavaLanguageParser();
+    ParsedFile parsedFile = parser.parse(testFile);
+
+    // Target: performCalculation method (deep in call chain)
+    Location targetLocation = new Location(testFile, 22);
+    ReachabilityResult result = parser.findReachability(List.of(parsedFile), targetLocation);
+
+    System.out.println("\n=== Reachability Result Visualization ===");
+
+    // Verify it's reachable
+    assertThat(result.isReachable()).isTrue();
+    assertThat(result.allPaths()).isNotEmpty();
+
+    // Test DOT format
+    String dotFormat = result.toDot();
+    System.out.println("\n--- DOT Format ---");
+    System.out.println(dotFormat);
+
+    assertThat(dotFormat)
+        .contains("digraph ReachabilityGraph")
+        .contains("main")
+        .contains("performCalculation")
+        .contains("->");
+
+    // Test Mermaid format
+    String mermaidFormat = result.toMermaid();
+    System.out.println("\n--- Mermaid Format ---");
+    System.out.println(mermaidFormat);
+
+    assertThat(mermaidFormat)
+        .contains("graph LR")
+        .contains("main")
+        .contains("performCalculation")
+        .contains("-->");
+
+    // Test Text format
+    String textFormat = result.toText();
+    System.out.println("\n--- Text Format ---");
+    System.out.println(textFormat);
+
+    assertThat(textFormat)
+        .contains("Reachability Paths:")
+        .contains("Confidence: 1.0")
+        .contains("main")
+        .contains("performCalculation")
+        .contains("Path 1:");
+
+    // Test unreachable case
+    Location unreachableLocation = new Location(testFile, 30); // unreachableMethod
+    ReachabilityResult unreachableResult =
+        parser.findReachability(List.of(parsedFile), unreachableLocation);
+
+    assertThat(unreachableResult.isReachable()).isFalse();
+    assertThat(unreachableResult.toDot()).contains("No reachable paths");
+    assertThat(unreachableResult.toMermaid()).contains("No reachable paths");
+    assertThat(unreachableResult.toText()).contains("No reachable paths found");
+  }
 }

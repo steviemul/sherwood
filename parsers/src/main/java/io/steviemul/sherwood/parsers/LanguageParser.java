@@ -40,4 +40,8 @@ public interface LanguageParser {
    * @return reachability analysis result
    */
   ReachabilityResult isReachable(CallGraph graph, Location target);
+
+  ReachabilityResult findReachability(List<ParsedFile> files, Location target);
+
+  ReachabilityResult findReachability(CallGraph graph, List<ParsedFile> files, Location target);
 }

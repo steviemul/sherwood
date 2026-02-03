@@ -24,7 +24,6 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
   private String currentPackage = "";
   private final Deque<String> classStack = new ArrayDeque<>();
   private String currentMethod = "";
-  private final List<String> currentAnnotations = new ArrayList<>();
 
   public JavaStructureVisitor(Path filePath) {
     this.filePath = filePath;
@@ -53,20 +52,33 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
   }
 
   @Override
-  public Void visitAnnotation(Java20Parser.AnnotationContext ctx) {
-    currentAnnotations.add(ctx.getText());
-    return super.visitAnnotation(ctx);
-  }
-
-  @Override
   public Void visitMethodDeclaration(Java20Parser.MethodDeclarationContext ctx) {
     if (ctx.methodHeader() != null && ctx.methodHeader().methodDeclarator() != null) {
       String methodName = ctx.methodHeader().methodDeclarator().identifier().getText();
       List<String> parameters = extractParameters(ctx.methodHeader().methodDeclarator());
+      
+      // Save previous context before setting current method
+      String previousMethod = currentMethod;
       currentMethod = getQualifiedName(methodName, parameters);
+
+      // Extract annotations directly from methodModifier
+      List<String> methodAnnotations = new ArrayList<>();
+      Integer annotationStartLine = null;
+      
+      for (Java20Parser.MethodModifierContext modifier : ctx.methodModifier()) {
+        if (modifier.annotation() != null) {
+          methodAnnotations.add(modifier.annotation().getText());
+          if (annotationStartLine == null) {
+            annotationStartLine = modifier.getStart().getLine();
+          }
+        }
+      }
 
       Token start = ctx.getStart();
       Token stop = ctx.getStop();
+
+      // Use first annotation line as start if annotations are present
+      int startLine = annotationStartLine != null ? annotationStartLine : start.getLine();
 
       // Extract source code from the token stream
       String sourceCode = "";
@@ -74,19 +86,18 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
         sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
       }
 
-      methods.add(
-          new MethodSignature(
+      MethodSignature method = new MethodSignature(
               methodName,
               currentMethod,
-              start.getLine(),
+              startLine,
               stop.getLine(),
               parameters,
-              new ArrayList<>(currentAnnotations),
-              sourceCode));
+              methodAnnotations,
+              sourceCode);
+      methods.add(method);
 
-      currentAnnotations.clear();
       super.visitMethodDeclaration(ctx);
-      currentMethod = "";
+      currentMethod = previousMethod; // Restore previous context instead of clearing
     }
     return null;
   }
@@ -97,7 +108,8 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
       String methodName = ctx.methodName().unqualifiedMethodIdentifier().getText();
       int lineNumber = ctx.getStart().getLine();
 
-      calls.add(new MethodCall(methodName, lineNumber, currentMethod));
+      MethodCall call = new MethodCall(methodName, lineNumber, currentMethod);
+      calls.add(call);
     }
     return super.visitMethodInvocation(ctx);
   }
@@ -165,7 +177,12 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
             stop.getLine(),
             sourceCode));
 
-    return super.visitStaticInitializer(ctx);
+    // Set context so method calls within this block are tracked
+    String previousMethod = currentMethod;
+    currentMethod = qualifiedName;
+    super.visitStaticInitializer(ctx);
+    currentMethod = previousMethod;
+    return null;
   }
 
   @Override
@@ -187,7 +204,12 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
             stop.getLine(),
             sourceCode));
 
-    return super.visitInstanceInitializer(ctx);
+    // Set context so method calls within this block are tracked
+    String previousMethod = currentMethod;
+    currentMethod = qualifiedName;
+    super.visitInstanceInitializer(ctx);
+    currentMethod = previousMethod;
+    return null;
   }
 
   @Override
@@ -218,6 +240,13 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
               start.getLine(),
               stop.getLine(),
               sourceCode));
+
+      // Set context so method calls in field initializers are tracked
+      String previousMethod = currentMethod;
+      currentMethod = qualifiedName;
+      super.visitFieldDeclaration(ctx);
+      currentMethod = previousMethod;
+      return null;
     }
 
     return super.visitFieldDeclaration(ctx);
@@ -232,5 +261,20 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
       sb.append(String.join(".", classStack));
     }
     return sb.toString();
+  }
+
+  @Override
+  public Void visitPrimaryNoNewArray(Java20Parser.PrimaryNoNewArrayContext ctx) {
+    // Check if this is a method invocation: methodName '(' argumentList? ')' pNNA?
+    if (ctx.methodName() != null) {
+      String methodName = ctx.methodName().unqualifiedMethodIdentifier().getText();
+      int lineNumber = ctx.getStart().getLine();
+      
+      // Add the method call
+      MethodCall call = new MethodCall(methodName, lineNumber, currentMethod);
+      calls.add(call);
+    }
+    
+    return super.visitPrimaryNoNewArray(ctx);
   }
 }

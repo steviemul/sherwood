@@ -1,5 +1,8 @@
 package io.steviemul.sherwood.cli;
 
+import io.steviemul.sherwood.cli.options.CliOptions;
+import io.steviemul.sherwood.cli.output.CliOutput;
+import io.steviemul.sherwood.cli.processor.Analyser;
 import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -20,12 +23,17 @@ public class Application implements Callable<Integer> {
   }
 
   @Override
-  public Integer call() throws Exception {
-    System.out.println("Sherwood CLI running...");
+  public Integer call() {
+    CliOutput.printBanner();
 
-    if (options.getRoot() != null) {
-      System.out.println("Root directory: " + options.getRoot());
-    }
+    Analyser analyser =
+        Analyser.builder()
+            .sourceCodeRoot(options.getRoot())
+            .sarifPath(options.getSarif())
+            .outputPath(options.getOutput())
+            .build();
+
+    analyser.analyse();
 
     return 0;
   }
