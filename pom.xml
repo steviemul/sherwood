@@ -33,6 +33,7 @@
     <flyway.version>11.20.3</flyway.version>
     <jackson.version>2.15.2</jackson.version>
     <lombok.version>1.18.34</lombok.version>
+    <aws.sdk.version>2.41.20</aws.sdk.version>
 
   </properties>
 

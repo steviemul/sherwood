@@ -5,9 +5,10 @@ spring:
   application:
     name: sherwood
 
-  http:
-    codecs:
-      max-in-memory-size: 50MB
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
   datasource:
     url: jdbc:postgresql://localhost:5432/sherwood_db
@@ -22,6 +23,14 @@ spring:
     sql-migration-prefix: T
     table: flyway_schema_sherwood
     validate-on-migrate: false
+
+storage:
+  s3:
+    endpoint: http://localhost:9000
+    region: us-east-1
+    access-key: minioadmin
+    secret-key: minioadmin
+    sarif-bucket: sarif
 
 logging:
   level:
