@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 /**
  * Result of reachability analysis.
  *
+ * @param completed whether analysis was completed (false if target file not in call graph, e.g.,
+ *     non-Java files)
  * @param isReachable whether the target is reachable from an entry point
  * @param entryPoint the entry point from which the target is reachable (null if not reachable)
  * @param path list of path nodes in the call path from entry point to target
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
  *     SARIF snippets)
  */
 public record ReachabilityResult(
+    boolean completed,
     boolean isReachable,
     MethodSignature entryPoint,
     List<PathNode> path,
@@ -27,12 +30,21 @@ public record ReachabilityResult(
     String targetSnippet) {
 
   /**
+   * Create a result indicating analysis could not be completed (e.g., target file not parsed).
+   *
+   * @return incomplete result with completed=false
+   */
+  public static ReachabilityResult notCompleted() {
+    return new ReachabilityResult(false, false, null, List.of(), 0.0, List.of(), "");
+  }
+
+  /**
    * Create a result indicating the target is not reachable.
    *
    * @return not reachable result with confidence 0.0
    */
   public static ReachabilityResult notReachable() {
-    return new ReachabilityResult(false, null, List.of(), 0.0, List.of(), "");
+    return new ReachabilityResult(true, false, null, List.of(), 0.0, List.of(), "");
   }
 
   /**
@@ -49,7 +61,7 @@ public record ReachabilityResult(
       List<PathNode> path,
       List<List<PathNode>> allPaths,
       String targetSnippet) {
-    return new ReachabilityResult(true, entryPoint, path, 1.0, allPaths, targetSnippet);
+    return new ReachabilityResult(true, true, entryPoint, path, 1.0, allPaths, targetSnippet);
   }
 
   /**
@@ -66,7 +78,7 @@ public record ReachabilityResult(
       List<PathNode> path,
       List<List<PathNode>> allPaths,
       String targetSnippet) {
-    return new ReachabilityResult(true, callingMethod, path, 0.5, allPaths, targetSnippet);
+    return new ReachabilityResult(true, true, callingMethod, path, 0.5, allPaths, targetSnippet);
   }
 
   /**

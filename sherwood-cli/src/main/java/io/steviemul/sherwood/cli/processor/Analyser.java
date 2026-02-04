@@ -15,13 +15,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import me.tongfei.progressbar.ProgressBar;
+import org.apache.commons.lang3.StringUtils;
 
 @RequiredArgsConstructor
 @Builder
@@ -30,11 +34,14 @@ public class Analyser {
   private final Path sourceCodeRoot;
   private final Path sarifPath;
   private final Path outputPath;
+  private final String serverUrl;
 
   private final Map<String, LanguageParser> languageParsers =
       Map.of("java", new io.steviemul.sherwood.parsers.java.JavaLanguageParser());
 
   public void analyse() {
+
+    Date start = new Date();
 
     Logger.info("Reading source code");
 
@@ -77,18 +84,16 @@ public class Analyser {
 
     Logger.info("Performing reachability analysis on " + results.size() + " results");
 
-    for (int i = 0; i < results.size(); i++) {
-      Result result = results.get(i);
-
-      if (!result.getRuleId().startsWith("OPT.JAVA.")) continue;
-
+    for (Result result : results) {
       Location location = getLocation(result);
 
       ReachabilityResult reachabilityResult = parser.findReachability(graph, parsedFiles, location);
 
-      reachabilityResults.add(reachabilityResult);
+      if (reachabilityResult.completed()) {
+        reachabilityResults.add(reachabilityResult);
 
-      addReachabilityAnalysisToResult(result, reachabilityResult);
+        addReachabilityAnalysisToResult(result, reachabilityResult);
+      }
     }
 
     Logger.taskComplete("Analysed " + reachabilityResults.size() + " results");
@@ -96,6 +101,37 @@ public class Analyser {
     sarifProcessor.writeSarif(sarif, outputPath);
 
     Logger.taskComplete("Updated sarif results written to " + outputPath);
+
+    if (!StringUtils.isEmpty(serverUrl)) {
+      SarifUploader sarifUploader = new SarifUploader(outputPath, serverUrl);
+
+      sarifUploader.uploadSarif();
+
+      Logger.taskComplete("Sarif uploaded to " + serverUrl);
+    }
+
+    Date end = new Date();
+
+    Logger.taskComplete("Analysis complete, took " + (end.getTime() - start.getTime()) + "ms");
+
+    printSummary(reachabilityResults);
+  }
+
+  private void printSummary(List<ReachabilityResult> results) {
+
+    Map<String, String> data = new LinkedHashMap<>();
+
+    data.put("Processed Results", String.valueOf(results.size()));
+
+    results.stream()
+        .collect(Collectors.groupingBy(ReachabilityResult::confidence, Collectors.counting()))
+        .entrySet()
+        .stream()
+        .sorted(Map.Entry.<Double, Long>comparingByKey(Comparator.reverseOrder()))
+        .forEach(
+            entry -> data.put("Confidence " + entry.getKey(), String.valueOf(entry.getValue())));
+
+    Logger.printSummaryTable("Analysis Summary", data);
   }
 
   private void addReachabilityAnalysisToResult(

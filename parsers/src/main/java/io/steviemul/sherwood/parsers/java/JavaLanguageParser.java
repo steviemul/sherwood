@@ -98,11 +98,6 @@ public class JavaLanguageParser implements LanguageParser {
 
   @Override
   public ReachabilityResult isReachable(CallGraph graph, Location target) {
-    // This is a placeholder - typically you'd need to:
-    // 1. Find which method contains the target line
-    // 2. Check if that method is in the call graph
-    // 3. Find entry points and trace reachability
-    // For now, return not reachable
     return ReachabilityResult.notReachable();
   }
 
@@ -120,6 +115,14 @@ public class JavaLanguageParser implements LanguageParser {
    * @return reachability result with confidence score and all paths
    */
   public ReachabilityResult findReachability(CallGraph graph, List<ParsedFile> files, Location target) {
+
+    // Check if the target file was parsed (i.e., it's a Java file in the call graph)
+    boolean targetFileInGraph =
+        files.stream().anyMatch(f -> f.filePath().equals(target.filePath()));
+    if (!targetFileInGraph) {
+      // File not in call graph (e.g., non-Java file or file not parsed)
+      return ReachabilityResult.notCompleted();
+    }
 
     // First, check if target is in a code block (initializer)
     CodeBlock targetBlock = findCodeBlockContainingLine(files, target);
@@ -158,7 +161,8 @@ public class JavaLanguageParser implements LanguageParser {
                 targetBlock.sourceCode());
         PathNode initNode = PathNode.entryPoint(init);
         // We could enhance this to check if constructor is actually called
-        return new ReachabilityResult(true, init, List.of(initNode), 0.8, List.of(List.of(initNode)), snippet);
+        return new ReachabilityResult(
+            true, true, init, List.of(initNode), 0.8, List.of(List.of(initNode)), snippet);
       }
     }
 

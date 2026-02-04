@@ -27,4 +27,9 @@ public class CliOptions {
           "Output location to save the modified SARIF file, defaults to 'sherwood-output.sarif' ",
       defaultValue = "sherwood-output.sarif")
   private Path output;
+
+  @Option(
+      names = {"--server"},
+      description = "Server URL. If set, updated sarif will be uploaded to this API.")
+  private String serverUrl;
 }

@@ -31,6 +31,7 @@ public class Application implements Callable<Integer> {
             .sourceCodeRoot(options.getRoot())
             .sarifPath(options.getSarif())
             .outputPath(options.getOutput())
+            .serverUrl(options.getServerUrl())
             .build();
 
     analyser.analyse();

@@ -5,6 +5,10 @@ spring:
   application:
     name: sherwood
 
+  http:
+    codecs:
+      max-in-memory-size: 50MB
+
   datasource:
     url: jdbc:postgresql://localhost:5432/sherwood_db
     driver-class-name: org.postgresql.Driver
@@ -18,7 +22,6 @@ spring:
     sql-migration-prefix: T
     table: flyway_schema_sherwood
     validate-on-migrate: false
-
 
 logging:
   level:
