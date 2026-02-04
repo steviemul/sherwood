@@ -4,6 +4,7 @@ import io.steviemul.sherwood.parsers.*;
 import java.nio.file.Path;
 import java.util.*;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 
@@ -94,11 +95,13 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
               parameters,
               methodAnnotations,
               sourceCode);
+
       methods.add(method);
 
       super.visitMethodDeclaration(ctx);
       currentMethod = previousMethod; // Restore previous context instead of clearing
     }
+
     return null;
   }
 
@@ -160,15 +163,14 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
 
   @Override
   public Void visitStaticInitializer(Java20Parser.StaticInitializerContext ctx) {
+
+    String sourceCode = getSourceCode(ctx);
+
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
 
-    String sourceCode = "";
-    if (start.getInputStream() != null) {
-      sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
-    }
-
     String qualifiedName = getClassQualifiedName() + ".<clinit>";
+
     codeBlocks.add(
         new CodeBlock(
             CodeBlock.BlockType.STATIC_INITIALIZER,
@@ -182,18 +184,31 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
     currentMethod = qualifiedName;
     super.visitStaticInitializer(ctx);
     currentMethod = previousMethod;
+
     return null;
   }
 
-  @Override
-  public Void visitInstanceInitializer(Java20Parser.InstanceInitializerContext ctx) {
+  private String getSourceCode(ParserRuleContext ctx) {
+
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
 
     String sourceCode = "";
+
     if (start.getInputStream() != null) {
       sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
     }
+
+    return sourceCode;
+  }
+
+  @Override
+  public Void visitInstanceInitializer(Java20Parser.InstanceInitializerContext ctx) {
+
+    String sourceCode = getSourceCode(ctx);
+
+    Token start = ctx.getStart();
+    Token stop = ctx.getStop();
 
     String qualifiedName = getClassQualifiedName() + ".<init>";
     codeBlocks.add(
@@ -216,13 +231,10 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
   public Void visitFieldDeclaration(Java20Parser.FieldDeclarationContext ctx) {
     // Check if field has initializer with method calls
     if (ctx.variableDeclaratorList() != null) {
+      String sourceCode = getSourceCode(ctx);
+
       Token start = ctx.getStart();
       Token stop = ctx.getStop();
-
-      String sourceCode = "";
-      if (start.getInputStream() != null) {
-        sourceCode = start.getInputStream().getText(new org.antlr.v4.runtime.misc.Interval(start.getStartIndex(), stop.getStopIndex()));
-      }
 
       // Determine if static or instance field
       boolean isStatic = ctx.parent != null 
@@ -265,6 +277,7 @@ public class JavaStructureVisitor extends Java20ParserBaseVisitor<Void> {
 
   @Override
   public Void visitPrimaryNoNewArray(Java20Parser.PrimaryNoNewArrayContext ctx) {
+
     // Check if this is a method invocation: methodName '(' argumentList? ')' pNNA?
     if (ctx.methodName() != null) {
       String methodName = ctx.methodName().unqualifiedMethodIdentifier().getText();

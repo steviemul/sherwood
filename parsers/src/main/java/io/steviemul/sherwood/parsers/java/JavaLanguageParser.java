@@ -22,6 +22,7 @@ public class JavaLanguageParser implements LanguageParser {
           visitor.getCalls(),
           visitor.getCodeBlocks(),
           Map.of("packageName", visitor.getPackageName()));
+
     } catch (IOException e) {
       throw new RuntimeException("Failed to parse " + filePath, e);
     }
@@ -34,13 +35,16 @@ public class JavaLanguageParser implements LanguageParser {
 
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     Java20Parser parser = new Java20Parser(tokens);
+
     // Remove default console error listener to suppress parse error messages
     parser.removeErrorListeners();
 
     ParseTree tree = parser.compilationUnit();
 
     JavaStructureVisitor visitor = new JavaStructureVisitor(filePath);
+
     visitor.visit(tree);
+
     return visitor;
   }
 
@@ -50,6 +54,7 @@ public class JavaLanguageParser implements LanguageParser {
   }
 
   private boolean isEntryPoint(MethodSignature method) {
+
     // Basic heuristics (can be extended later)
     return method.name().equals("main")
         || method.annotations().stream()
@@ -67,31 +72,25 @@ public class JavaLanguageParser implements LanguageParser {
   public CallGraph buildCallGraph(List<ParsedFile> files) {
     CallGraph graph = new CallGraph();
 
-    // Index all methods by qualified name (now includes parameter types)
-    Map<String, MethodSignature> methodIndex = new HashMap<>();
-    // Also index by simple name for fallback matching
     Map<String, List<MethodSignature>> methodsByName = new HashMap<>();
-    
-    for (ParsedFile file : files) {
-      for (MethodSignature method : file.methods()) {
-        methodIndex.put(method.qualifiedName(), method);
-        methodsByName.computeIfAbsent(method.name(), k -> new ArrayList<>()).add(method);
-      }
-    }
+
+    files.stream()
+        .flatMap(f -> f.methods().stream())
+        .forEach(method ->
+            methodsByName.computeIfAbsent(method.name(), k -> new ArrayList<>()).add(method)
+        );
 
     // Build edges based on calls
-    for (ParsedFile file : files) {
-      for (MethodCall call : file.calls()) {
-        // Try to match by name - since we don't have argument types at call sites,
-        // we match all methods with the same name (limitation of pure syntactic analysis)
-        List<MethodSignature> candidates = methodsByName.get(call.methodName());
-        if (candidates != null) {
-          for (MethodSignature callee : candidates) {
-            graph.addEdge(call.context(), callee.qualifiedName(), call.lineNumber());
+    files.stream()
+        .flatMap(f -> f.calls().stream())
+        .forEach(call -> {
+          List<MethodSignature> candidates = methodsByName.get(call.methodName());
+          if (candidates != null) {
+            candidates.forEach(callee ->
+                graph.addEdge(call.context(), callee.qualifiedName(), call.lineNumber())
+            );
           }
-        }
-      }
-    }
+        });
 
     return graph;
   }
@@ -107,6 +106,7 @@ public class JavaLanguageParser implements LanguageParser {
 
     return findReachability(graph, files, target);
   }
+
   /**
    * Find if a method containing the target line is reachable from entry points.
    *
@@ -116,21 +116,25 @@ public class JavaLanguageParser implements LanguageParser {
    */
   public ReachabilityResult findReachability(CallGraph graph, List<ParsedFile> files, Location target) {
 
-    // Check if the target file was parsed (i.e., it's a Java file in the call graph)
+    // Check if the target file was parsed (i.e., it's a supported file type in the call graph)
     boolean targetFileInGraph =
         files.stream().anyMatch(f -> f.filePath().equals(target.filePath()));
+
     if (!targetFileInGraph) {
-      // File not in call graph (e.g., non-Java file or file not parsed)
+      // File not in call graph (e.g. no parser implemented for the file type)
       return ReachabilityResult.notCompleted();
     }
 
     // First, check if target is in a code block (initializer)
     CodeBlock targetBlock = findCodeBlockContainingLine(files, target);
+
     if (targetBlock != null) {
       String snippet = extractTargetSnippet(target);
+
       // Static initializers and fields run at class load - very high confidence
       if (targetBlock.type() == CodeBlock.BlockType.STATIC_INITIALIZER
           || targetBlock.type() == CodeBlock.BlockType.STATIC_FIELD) {
+
         // Create a pseudo-method signature for the static initializer
         MethodSignature clinit =
             new MethodSignature(
@@ -141,13 +145,17 @@ public class JavaLanguageParser implements LanguageParser {
                 List.of(),
                 List.of(),
                 targetBlock.sourceCode());
+
         PathNode clinitNode = PathNode.entryPoint(clinit);
+
         return ReachabilityResult.reachableFromEntryPoint(
             clinit, List.of(clinitNode), List.of(List.of(clinitNode)), snippet);
       }
+
       // Instance initializers and fields run on construction - high confidence if constructor is called
       if (targetBlock.type() == CodeBlock.BlockType.INSTANCE_INITIALIZER
           || targetBlock.type() == CodeBlock.BlockType.INSTANCE_FIELD) {
+
         // Check if any constructor is reachable
         // For now, treat as reachable with 0.8 confidence (between entry point and internal)
         MethodSignature init =
@@ -159,7 +167,9 @@ public class JavaLanguageParser implements LanguageParser {
                 List.of(),
                 List.of(),
                 targetBlock.sourceCode());
+
         PathNode initNode = PathNode.entryPoint(init);
+
         // We could enhance this to check if constructor is actually called
         return new ReachabilityResult(
             true, true, init, List.of(initNode), 0.8, List.of(List.of(initNode)), snippet);
@@ -168,6 +178,7 @@ public class JavaLanguageParser implements LanguageParser {
 
     // Find the method containing the target line
     MethodSignature targetMethod = findMethodContainingLine(files, target);
+
     if (targetMethod == null) {
       return ReachabilityResult.notReachable();
     }
@@ -211,6 +222,7 @@ public class JavaLanguageParser implements LanguageParser {
       if (callerMethod != null) {
         // Find the invocation line from the caller to the target
         Integer invokedAtLine = null;
+
         for (CallEdge edge : graph.getCallees(callerName)) {
           if (edge.callee().equals(targetMethod.qualifiedName())) {
             invokedAtLine = edge.invokedAtLine();
@@ -222,19 +234,26 @@ public class JavaLanguageParser implements LanguageParser {
             PathNode.entryPoint(callerMethod), 
             PathNode.invoked(targetMethod, invokedAtLine != null ? invokedAtLine : targetMethod.startLine())
         );
+
         List<List<PathNode>> allPaths = new ArrayList<>();
         
         // Find all direct callers with their invocation lines
+
         for (String caller : methodsThatCallTarget) {
+
           MethodSignature callerSig = findMethodByQualifiedName(files, caller);
+
           if (callerSig != null) {
+
             Integer invocationLine = null;
+
             for (CallEdge edge : graph.getCallees(caller)) {
               if (edge.callee().equals(targetMethod.qualifiedName())) {
                 invocationLine = edge.invokedAtLine();
                 break;
               }
             }
+
             allPaths.add(List.of(
                 PathNode.entryPoint(callerSig), 
                 PathNode.invoked(targetMethod, invocationLine != null ? invocationLine : targetMethod.startLine())
@@ -243,6 +262,7 @@ public class JavaLanguageParser implements LanguageParser {
         }
         
         String snippet = extractTargetSnippet(target);
+
         return ReachabilityResult.reachableFromNonEntryPoint(callerMethod, path, allPaths, snippet);
       }
     }
@@ -277,6 +297,7 @@ public class JavaLanguageParser implements LanguageParser {
       int endIdx = Math.min(lines.size(), targetLineIdx + contextLines + 1);
       
       StringBuilder snippet = new StringBuilder();
+
       for (int i = startIdx; i < endIdx; i++) {
         snippet.append(String.format("%4d: %s%n", i + 1, lines.get(i)));
       }
@@ -288,42 +309,31 @@ public class JavaLanguageParser implements LanguageParser {
   }
 
   private MethodSignature findMethodContainingLine(List<ParsedFile> files, Location target) {
-    for (ParsedFile file : files) {
-      if (file.filePath().equals(target.filePath())) {
-        for (MethodSignature method : file.methods()) {
-          if (target.lineNumber() >= method.startLine()
-              && target.lineNumber() <= method.endLine()) {
-            return method;
-          }
-        }
-      }
-    }
-    return null;
+
+    return files.stream()
+        .filter(f -> f.filePath().equals(target.filePath()))
+        .flatMap(f -> f.methods().stream())
+        .filter(m -> target.lineNumber() >= m.startLine() && target.lineNumber() <= m.endLine())
+        .findFirst()
+        .orElse(null);
+
   }
 
   private CodeBlock findCodeBlockContainingLine(List<ParsedFile> files, Location target) {
-    for (ParsedFile file : files) {
-      if (file.filePath().equals(target.filePath())) {
-        for (CodeBlock block : file.codeBlocks()) {
-          if (target.lineNumber() >= block.startLine()
-              && target.lineNumber() <= block.endLine()) {
-            return block;
-          }
-        }
-      }
-    }
-    return null;
+    return files.stream()
+        .filter(f -> f.filePath().equals(target.filePath()))
+        .flatMap(f -> f.codeBlocks().stream())
+        .filter(b -> target.lineNumber() >= b.startLine() && target.lineNumber() <= b.endLine())
+        .findFirst()
+        .orElse(null);
   }
 
   private MethodSignature findMethodByQualifiedName(List<ParsedFile> files, String qualifiedName) {
-    for (ParsedFile file : files) {
-      for (MethodSignature method : file.methods()) {
-        if (method.qualifiedName().equals(qualifiedName)) {
-          return method;
-        }
-      }
-    }
-    return null;
+    return files.stream()
+        .flatMap(f -> f.methods().stream())
+        .filter(m -> m.qualifiedName().equals(qualifiedName))
+        .findFirst()
+        .orElse(null);
   }
 
   private Map<String, List<String>> buildReverseGraph(CallGraph graph) {
@@ -363,9 +373,12 @@ public class JavaLanguageParser implements LanguageParser {
     if (current.equals(target)) {
       // Found a path - convert to PathNodes with invocation line numbers
       List<PathNode> path = new ArrayList<>();
+
       for (int i = 0; i < currentPath.size(); i++) {
+
         String methodName = currentPath.get(i);
         MethodSignature method = findMethodByQualifiedName(files, methodName);
+
         if (method != null) {
           if (i == 0) {
             // First method in path (entry point) - no invocation line
@@ -374,20 +387,24 @@ public class JavaLanguageParser implements LanguageParser {
             // Find the invocation line from the previous method
             String caller = currentPath.get(i - 1);
             Integer invokedAtLine = null;
+
             for (CallEdge edge : graph.getCallees(caller)) {
               if (edge.callee().equals(methodName)) {
                 invokedAtLine = edge.invokedAtLine();
                 break;
               }
             }
+
             path.add(PathNode.invoked(method, invokedAtLine != null ? invokedAtLine : method.startLine()));
           }
         }
       }
+
       if (!path.isEmpty()) {
         allPaths.add(path);
       }
     } else {
+
       // Continue searching
       for (CallEdge edge : graph.getCallees(current)) {
         if (!visited.contains(edge.callee())) {
