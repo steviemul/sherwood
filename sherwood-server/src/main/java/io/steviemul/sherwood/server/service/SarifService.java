@@ -5,6 +5,8 @@ import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.mapper.SarifMapper;
 import io.steviemul.sherwood.server.repository.SarifRepository;
 import io.steviemul.sherwood.server.response.SarifResponse;
+import io.steviemul.sherwood.server.response.SarifResultResponse;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,5 +51,11 @@ public class SarifService {
             () ->
                 new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "Sarif not found with id: " + id));
+  }
+
+  public List<SarifResultResponse> getResultsBySarifId(UUID sarifId) {
+    return resultsService.getResultsBySarifId(sarifId).stream()
+        .map(SarifMapper::sarifResultEntityToSarifResultResponse)
+        .toList();
   }
 }

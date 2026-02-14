@@ -5,9 +5,11 @@ import static io.steviemul.sherwood.server.constant.Routes.STATUS_ROUTE;
 
 import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.response.SarifResponse;
+import io.steviemul.sherwood.server.response.SarifResultResponse;
 import io.steviemul.sherwood.server.service.JobService;
 import io.steviemul.sherwood.server.service.SarifService;
 import io.steviemul.sherwood.server.service.StorageService;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,5 +62,13 @@ public class SherwoodController {
     SarifResponse sarifResponse = sarifService.getSarifResponseById(id);
 
     return ResponseEntity.ok(sarifResponse);
+  }
+
+  @GetMapping(SARIFS_ROUTE + "/{id}/results")
+  public ResponseEntity<List<SarifResultResponse>> getResultsBySarifId(
+      @PathVariable("id") UUID id) {
+    List<SarifResultResponse> results = sarifService.getResultsBySarifId(id);
+
+    return ResponseEntity.ok(results);
   }
 }

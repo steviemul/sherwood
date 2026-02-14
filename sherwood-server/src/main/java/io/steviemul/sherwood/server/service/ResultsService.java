@@ -6,6 +6,7 @@ import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.entity.sarif.SarifResult;
 import io.steviemul.sherwood.server.repository.ResultsRepository;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,5 +49,9 @@ public class ResultsService {
 
   private long getLineNumber(Result result) {
     return result.getLocations().getFirst().getPhysicalLocation().getRegion().getStartLine();
+  }
+
+  public List<SarifResult> getResultsBySarifId(UUID sarifId) {
+    return resultsRepository.findBySarifId(sarifId);
   }
 }
