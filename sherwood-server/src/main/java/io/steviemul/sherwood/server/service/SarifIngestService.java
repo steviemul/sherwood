@@ -3,9 +3,10 @@ package io.steviemul.sherwood.server.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.steviemul.sherwood.sarif.Result;
 import io.steviemul.sherwood.sarif.SarifSchema210;
+import io.steviemul.sherwood.server.entity.sarif.SarifResult;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
@@ -20,25 +21,27 @@ public class SarifIngestService {
   private final StorageService storageService;
   private final Logger jobLogger = new JobRunrDashboardLogger(log);
   private final ObjectMapper objectMapper;
+  private final SarifService sarifService;
 
-  public void ingestSarif(String storageKey) {
+  public void ingestSarif(String storageKey, UUID sarifId) {
     jobLogger.info("Ingesting sarif with key {}", storageKey);
 
-    SarifSchema210 sarif = readSarif(storageKey);
+    SarifSchema210 sarifFile = readSarif(storageKey);
 
-    processSarif(sarif);
+    processSarif(sarifFile, sarifId);
 
     jobLogger.info("Ingest complete for key {}", storageKey);
   }
 
-  private void processSarif(SarifSchema210 sarif) {
+  private void processSarif(SarifSchema210 sarif, UUID sarifId) {
 
-    List<Result> results = sarif.getRuns().getFirst().getResults();
-
-    results.forEach(this::processResult);
+    sarifService.processSarif(sarif, sarifId);
   }
 
   private void processResult(Result result) {
+
+    SarifResult sarifResult = SarifResult.builder().build();
+
     jobLogger.info("Processing result {}", result.getRuleId());
   }
 

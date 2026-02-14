@@ -30,7 +30,7 @@ public class SarifResult {
   private String location;
 
   @Column(name = "line_number", nullable = false)
-  private Integer lineNumber;
+  private Long lineNumber;
 
   @Column(name = "fingerprint", length = 255)
   private String fingerprint;

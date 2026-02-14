@@ -1,5 +1,6 @@
 package io.steviemul.sherwood.server.service;
 
+import io.steviemul.sherwood.sarif.SarifSchema210;
 import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.mapper.SarifMapper;
 import io.steviemul.sherwood.server.repository.SarifRepository;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class SarifService {
 
   private final SarifRepository sarifRepository;
+  private final ResultsService resultsService;
 
   public Sarif createSarif(String filename, String storageKey) {
 
@@ -30,6 +32,13 @@ public class SarifService {
             .build();
 
     return sarifRepository.save(sarif);
+  }
+
+  public void processSarif(SarifSchema210 sarifFile, UUID sarifId) {
+
+    Sarif sarif = sarifRepository.findById(sarifId).get();
+
+    resultsService.processResults(sarifFile, sarif);
   }
 
   public SarifResponse getSarifResponseById(UUID id) {

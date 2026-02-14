@@ -7,7 +7,7 @@ public record SarifResultResponse(
     UUID id,
     UUID sarifId,
     String location,
-    Integer lineNumber,
+    Long lineNumber,
     String fingerprint,
     String snippet,
     String description,

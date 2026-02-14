@@ -15,7 +15,7 @@ public class JobService {
   private final SarifIngestService sarifIngestService;
 
   public UUID submitSarifIngestJob(String storageKey, UUID sarifId) {
-    jobScheduler.enqueue(sarifId, () -> sarifIngestService.ingestSarif(storageKey));
+    jobScheduler.enqueue(sarifId, () -> sarifIngestService.ingestSarif(storageKey, sarifId));
 
     return sarifId;
   }
