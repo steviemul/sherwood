@@ -1,0 +1,11 @@
+POST http://localhost:12080/sherwood/upload
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="sarif"; filename="semgrep.sarif.json"
+Content-Type: application/json
+
+< ../sarifs/semgrep.sarif.json
+--WebAppBoundary--
+
+###
