@@ -1,4 +1,4 @@
-POST http://localhost:12080/sherwood/sarifs
+POST http://localhost:12080/api/sherwood/sarifs
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
