@@ -32,6 +32,22 @@ services:
     volumes:
       - minio-data:/data
 
+  caddy:
+    image: caddy:latest
+    container_name: sherwood-caddy
+    ports:
+      - "14080:14080"
+    volumes:
+      - ./sherwood-frontend/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sherwood-frontend/static:/srv/static:ro
+    environment:
+      SHERWOOD_SERVER_HOST: ${SHERWOOD_SERVER_HOST:-host.docker.internal}
+      SHERWOOD_SERVER_PORT: ${SHERWOOD_SERVER_PORT:-12080}
+      JOBS_SERVER_HOST: ${JOBS_SERVER_HOST:-host.docker.internal}
+      JOBS_SERVER_PORT: ${JOBS_SERVER_PORT:-13080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   sherwood-data: {}
   minio-data: {}

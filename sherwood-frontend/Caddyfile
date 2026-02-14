@@ -1,0 +1,36 @@
+{
+    admin off
+    auto_https off
+}
+
+:14080 {
+    # Serve static files from sherwood-frontend/static
+    root * /srv/static
+    file_server
+
+    # Proxy sherwood-specific API requests
+    handle /api/sherwood* {
+        reverse_proxy {$SHERWOOD_SERVER_HOST:host.docker.internal}:{$SHERWOOD_SERVER_PORT:12080}
+    }
+
+    # Proxy SSE requests to runr server
+    handle /sse* {
+        reverse_proxy {$JOBS_SERVER_HOST:host.docker.internal}:{$JOBS_SERVER_PORT:13080}
+    }
+
+    # Proxy dashboard requests to runr server
+    handle /dashboard* {
+        reverse_proxy {$JOBS_SERVER_HOST:host.docker.internal}:{$JOBS_SERVER_PORT:13080}
+    }
+
+    # Proxy other API requests to runr server (fallback)
+    handle /api* {
+        reverse_proxy {$JOBS_SERVER_HOST:host.docker.internal}:{$JOBS_SERVER_PORT:13080}
+    }
+
+    # Log requests
+    log {
+        output stdout
+        format console
+    }
+}

@@ -23,7 +23,7 @@ public class SarifMapper {
 
   public static SarifResultResponse sarifResultEntityToSarifResultResponse(
       SarifResult sarifResult) {
-        
+
     return new SarifResultResponse(
         sarifResult.getId(),
         sarifResult.getSarif().getId(),
