@@ -8,5 +8,5 @@ public class Routes {
 
   public static final String STATUS_ROUTE = BASE + "/status";
 
-  public static final String UPLOAD_ROUTE = BASE + "/upload";
+  public static final String SARIFS_ROUTE = BASE + "/sarif";
 }
