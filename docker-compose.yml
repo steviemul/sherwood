@@ -39,7 +39,7 @@ services:
       - "14080:14080"
     volumes:
       - ./sherwood-frontend/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./sherwood-frontend/static:/srv/static:ro
+      - ./sherwood-frontend/dist:/srv/dist:ro
     environment:
       SHERWOOD_SERVER_HOST: ${SHERWOOD_SERVER_HOST:-host.docker.internal}
       SHERWOOD_SERVER_PORT: ${SHERWOOD_SERVER_PORT:-12080}

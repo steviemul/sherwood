@@ -14,6 +14,7 @@ public class SarifMapper {
         sarif.getId(),
         sarif.getFilename(),
         sarif.getStorageKey(),
+        "",
         sarif.getVendor(),
         sarif.getRepository(),
         sarif.getIdentifier(),

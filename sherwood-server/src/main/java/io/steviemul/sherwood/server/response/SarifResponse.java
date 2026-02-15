@@ -7,6 +7,7 @@ public record SarifResponse(
     UUID id,
     String filename,
     String storageKey,
+    String downloadUrl,
     String vendor,
     String repository,
     String identifier,

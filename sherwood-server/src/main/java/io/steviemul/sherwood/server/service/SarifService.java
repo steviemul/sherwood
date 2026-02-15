@@ -21,6 +21,7 @@ public class SarifService {
 
   private final SarifRepository sarifRepository;
   private final ResultsService resultsService;
+  private final StorageService storageService;
 
   public Sarif createSarif(String filename, String storageKey) {
 
@@ -44,17 +45,37 @@ public class SarifService {
   }
 
   public List<SarifResponse> getAllSarifs() {
-    return sarifRepository.findAll().stream().map(SarifMapper::sarifEntityToSarifResponse).toList();
+    return sarifRepository.findAll().stream()
+        .map(SarifMapper::sarifEntityToSarifResponse)
+        .map(this::addDownloadUrl)
+        .toList();
   }
 
   public SarifResponse getSarifResponseById(UUID id) {
     return sarifRepository
         .findById(id)
         .map(SarifMapper::sarifEntityToSarifResponse)
+        .map(this::addDownloadUrl)
         .orElseThrow(
             () ->
                 new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "Sarif not found with id: " + id));
+  }
+
+  private SarifResponse addDownloadUrl(SarifResponse sarifResponse) {
+
+    String downloadUrl = storageService.getDownloadUrl(sarifResponse.storageKey());
+
+    return new SarifResponse(
+        sarifResponse.id(),
+        sarifResponse.filename(),
+        sarifResponse.storageKey(),
+        downloadUrl,
+        sarifResponse.vendor(),
+        sarifResponse.repository(),
+        sarifResponse.identifier(),
+        sarifResponse.created(),
+        sarifResponse.updated());
   }
 
   public SarifResultResponse getResultById(UUID resultId) {
