@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.util.List;
 import java.util.UUID;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -38,8 +37,7 @@ public class OllamaRule {
   @Column(columnDefinition = "json")
   private String metadata;
 
-  // Hibernate Vector type for pgvector extension
   @JdbcTypeCode(SqlTypes.VECTOR)
-  @Column(name = "embedding")
-  private List<Double> embedding;
+  @Column(name = "embedding", columnDefinition = "vector(768)")
+  private float[] embedding;
 }

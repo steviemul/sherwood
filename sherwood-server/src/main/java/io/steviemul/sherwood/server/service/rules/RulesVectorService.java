@@ -48,6 +48,18 @@ public class RulesVectorService {
     return new Document(embeddingContents, templateService.objectToMap(ruleRequest));
   }
 
+  public Document getByRuleId(String ruleId) {
+
+    FilterExpressionBuilder builder = new FilterExpressionBuilder();
+
+    Filter.Expression expression = builder.eq("id", ruleId).build();
+
+    SearchRequest.Builder searchRequestBuilder =
+        SearchRequest.builder().query("").filterExpression(expression).topK(1);
+
+    return rulesVectorStore.similaritySearch(searchRequestBuilder.build()).getFirst();
+  }
+
   public List<DocumentResponse> search(
       String vendor, QueryAdjustments adjustments, RuleRequest ruleRequest) {
     return similaritySearch(vendor, adjustments, ruleRequest);
@@ -65,7 +77,7 @@ public class RulesVectorService {
             .topK(adjustments.size());
 
     createFilterExpression(vendor, adjustments.exact(), ruleRequest)
-        .ifPresent(e -> searchRequestBuilder.filterExpression(e));
+        .ifPresent(searchRequestBuilder::filterExpression);
 
     SearchRequest searchRequest = searchRequestBuilder.build();
 

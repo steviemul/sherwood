@@ -16,4 +16,7 @@ public interface ResultsRepository extends JpaRepository<SarifResult, UUID> {
   List<SarifResult> findByRuleId(String ruleId);
 
   List<SarifResult> findBySarifId(UUID sarifId);
+
+  List<SarifResult> findBySarifRepositoryAndLocationContainingIgnoreCase(
+      String sarifRepository, String location);
 }

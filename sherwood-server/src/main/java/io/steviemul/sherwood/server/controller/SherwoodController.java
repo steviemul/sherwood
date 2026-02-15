@@ -9,8 +9,8 @@ import io.steviemul.sherwood.server.response.SarifResultResponse;
 import io.steviemul.sherwood.server.response.SarifResultSimilarityResponse;
 import io.steviemul.sherwood.server.service.jobs.JobService;
 import io.steviemul.sherwood.server.service.sarif.SarifService;
+import io.steviemul.sherwood.server.service.sarif.SimilarityService;
 import io.steviemul.sherwood.server.service.sarif.StorageService;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +31,7 @@ public class SherwoodController {
   private final SarifService sarifService;
   private final StorageService storageService;
   private final JobService jobService;
+  private final SimilarityService similarityService;
 
   @GetMapping(STATUS_ROUTE)
   public ResponseEntity<String> getStatus() {
@@ -97,6 +98,8 @@ public class SherwoodController {
   public ResponseEntity<List<SarifResultSimilarityResponse>> getResultMatchesById(
       @PathVariable("id") UUID id, @PathVariable("resultId") UUID resultId) {
 
-    return ResponseEntity.ok(Collections.emptyList());
+    List<SarifResultSimilarityResponse> matches = similarityService.findSimilarResults(resultId);
+
+    return ResponseEntity.ok(matches);
   }
 }

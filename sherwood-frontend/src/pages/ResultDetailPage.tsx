@@ -26,9 +26,15 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import mermaid from 'mermaid';
@@ -415,15 +421,105 @@ export const ResultDetailPage = () => {
               <Paper
                 elevation={0}
                 sx={{
-                  p: 2,
+                  position: 'relative',
                   backgroundColor: mode === 'dark' ? 'grey.900' : 'grey.50',
-                  overflow: 'auto',
+                  overflow: 'hidden',
+                  height: '600px',
                 }}
               >
-                <Box
-                  ref={mermaidRef}
-                  dangerouslySetInnerHTML={{ __html: mermaidSvg }}
-                />
+                <TransformWrapper
+                  initialScale={1.5}
+                  minScale={0.3}
+                  maxScale={4}
+                  wheel={{ step: 0.1 }}
+                  doubleClick={{ mode: 'reset' }}
+                  panning={{ disabled: false }}
+                >
+                  {({ zoomIn, zoomOut, resetTransform }) => (
+                    <>
+                      {/* Zoom Control Buttons */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1,
+                          zIndex: 1,
+                        }}
+                      >
+                        <Tooltip title="Zoom In" placement="left">
+                          <IconButton
+                            size="small"
+                            onClick={() => zoomIn()}
+                            sx={{
+                              backgroundColor: mode === 'dark' ? 'grey.800' : 'white',
+                              '&:hover': {
+                                backgroundColor: mode === 'dark' ? 'grey.700' : 'grey.100',
+                              },
+                              boxShadow: 1,
+                            }}
+                          >
+                            <ZoomInIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Zoom Out" placement="left">
+                          <IconButton
+                            size="small"
+                            onClick={() => zoomOut()}
+                            sx={{
+                              backgroundColor: mode === 'dark' ? 'grey.800' : 'white',
+                              '&:hover': {
+                                backgroundColor: mode === 'dark' ? 'grey.700' : 'grey.100',
+                              },
+                              boxShadow: 1,
+                            }}
+                          >
+                            <ZoomOutIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Reset Zoom" placement="left">
+                          <IconButton
+                            size="small"
+                            onClick={() => resetTransform()}
+                            sx={{
+                              backgroundColor: mode === 'dark' ? 'grey.800' : 'white',
+                              '&:hover': {
+                                backgroundColor: mode === 'dark' ? 'grey.700' : 'grey.100',
+                              },
+                              boxShadow: 1,
+                            }}
+                          >
+                            <RestartAltIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+
+                      {/* Diagram Container */}
+                      <TransformComponent
+                        wrapperStyle={{
+                          width: '100%',
+                          height: '100%',
+                          cursor: 'grab',
+                        }}
+                      >
+                        <Box
+                          ref={mermaidRef}
+                          dangerouslySetInnerHTML={{ __html: mermaidSvg }}
+                          sx={{
+                            display: 'inline-block',
+                            '& svg': {
+                              display: 'block',
+                              maxWidth: '100%',
+                              height: 'auto',
+                            },
+                          }}
+                        />
+                      </TransformComponent>
+                    </>
+                  )}
+                </TransformWrapper>
               </Paper>
             </CardContent>
           </Card>
