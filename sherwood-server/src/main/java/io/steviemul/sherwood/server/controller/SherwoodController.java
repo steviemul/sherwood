@@ -64,11 +64,35 @@ public class SherwoodController {
     return ResponseEntity.ok(sarifResponse);
   }
 
+  @GetMapping(SARIFS_ROUTE)
+  public ResponseEntity<List<SarifResponse>> getSarifs() {
+    List<SarifResponse> sarifResponse = sarifService.getAllSarifs();
+
+    return ResponseEntity.ok(sarifResponse);
+  }
+
   @GetMapping(SARIFS_ROUTE + "/{id}/results")
   public ResponseEntity<List<SarifResultResponse>> getResultsBySarifId(
       @PathVariable("id") UUID id) {
     List<SarifResultResponse> results = sarifService.getResultsBySarifId(id);
 
     return ResponseEntity.ok(results);
+  }
+
+  @GetMapping(SARIFS_ROUTE + "/{id}/results/{resultId}")
+  public ResponseEntity<SarifResultResponse> getResultById(
+      @PathVariable("id") UUID id, @PathVariable("resultId") UUID resultId) {
+    SarifResultResponse result = sarifService.getResultById(resultId);
+
+    return ResponseEntity.ok(result);
+  }
+
+  @GetMapping(SARIFS_ROUTE + "/{id}/results/{resultId}/matches")
+  public ResponseEntity<SarifResultResponse> getResultMatchesById(
+      @PathVariable("id") UUID id, @PathVariable("resultId") UUID resultId) {
+
+    SarifResultResponse result = sarifService.getResultById(resultId);
+
+    return ResponseEntity.ok(result);
   }
 }

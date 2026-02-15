@@ -26,13 +26,13 @@ public class SarifResult {
   @JoinColumn(name = "sarif", nullable = false)
   private Sarif sarif;
 
-  @Column(name = "location", nullable = false, length = 255)
+  @Column(name = "location", nullable = false)
   private String location;
 
   @Column(name = "line_number", nullable = false)
   private Long lineNumber;
 
-  @Column(name = "fingerprint", length = 255)
+  @Column(name = "fingerprint")
   private String fingerprint;
 
   @Column(name = "snippet", columnDefinition = "TEXT")
@@ -41,8 +41,19 @@ public class SarifResult {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
-  @Column(name = "rule_id", nullable = false, length = 255)
+  @Column(name = "rule_id", nullable = false)
   private String ruleId;
+
+  @Column(name = "confidence")
+  @Builder.Default
+  private Double confidence = 0.0;
+
+  @Column(name = "reachable")
+  @Builder.Default
+  private Boolean reachable = false;
+
+  @Column(name = "graph", columnDefinition = "TEXT")
+  private String graph;
 
   @CreationTimestamp
   @Column(name = "created", nullable = false, updatable = false)

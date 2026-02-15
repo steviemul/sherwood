@@ -1,11 +1,19 @@
 package io.steviemul.sherwood.server.service;
 
+import static io.steviemul.sherwood.server.utils.ResultHelper.getAnalysis;
+import static io.steviemul.sherwood.server.utils.ResultHelper.getFingerprint;
+import static io.steviemul.sherwood.server.utils.ResultHelper.getLineNumber;
+import static io.steviemul.sherwood.server.utils.ResultHelper.getLocation;
+import static io.steviemul.sherwood.server.utils.ResultHelper.getSnippet;
+
 import io.steviemul.sherwood.sarif.Result;
 import io.steviemul.sherwood.sarif.SarifSchema210;
+import io.steviemul.sherwood.server.entity.sarif.ResultAnalysis;
 import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.entity.sarif.SarifResult;
 import io.steviemul.sherwood.server.repository.ResultsRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,30 +36,29 @@ public class ResultsService {
     resultsRepository.saveAll(results);
   }
 
+  public List<SarifResult> getResultsBySarifId(UUID sarifId) {
+    return resultsRepository.findBySarifId(sarifId);
+  }
+
+  public Optional<SarifResult> getResultById(UUID resultId) {
+    return resultsRepository.findById(resultId);
+  }
+
   private SarifResult toSarifResultEntity(Result result, Sarif sarif) {
 
-    String fingerPrint =
-        result.getFingerprints().getAdditionalProperties().getOrDefault("test", "test");
+    ResultAnalysis analysis = getAnalysis(result);
 
     return SarifResult.builder()
         .sarif(sarif)
-        .fingerprint(fingerPrint)
+        .fingerprint(getFingerprint(result))
         .ruleId(result.getRuleId())
         .description(result.getMessage().getText())
         .location(getLocation(result))
         .lineNumber(getLineNumber(result))
+        .snippet(getSnippet(result))
+        .confidence(analysis.confidence())
+        .reachable(analysis.reachable())
+        .graph(analysis.graph())
         .build();
-  }
-
-  private String getLocation(Result result) {
-    return result.getLocations().getFirst().getPhysicalLocation().getArtifactLocation().getUri();
-  }
-
-  private long getLineNumber(Result result) {
-    return result.getLocations().getFirst().getPhysicalLocation().getRegion().getStartLine();
-  }
-
-  public List<SarifResult> getResultsBySarifId(UUID sarifId) {
-    return resultsRepository.findBySarifId(sarifId);
   }
 }

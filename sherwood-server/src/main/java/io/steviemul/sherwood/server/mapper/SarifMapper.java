@@ -33,6 +33,9 @@ public class SarifMapper {
         sarifResult.getSnippet(),
         sarifResult.getDescription(),
         sarifResult.getRuleId(),
+        sarifResult.getConfidence(),
+        sarifResult.getReachable(),
+        sarifResult.getGraph(),
         sarifResult.getCreated(),
         sarifResult.getUpdated());
   }

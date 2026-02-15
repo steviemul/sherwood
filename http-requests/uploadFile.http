@@ -2,10 +2,10 @@ POST http://localhost:14080/api/sherwood/sarifs
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
-Content-Disposition: form-data; name="sarif"; filename="semgrep.sarif.json"
+Content-Disposition: form-data; name="sarif"; filename="snyk.enhanced.sarif.json"
 Content-Type: application/json
 
-< ../sarifs/semgrep.sarif.json
+< ../sarifs/snyk.enhanced.sarif.json
 --WebAppBoundary--
 
 ###

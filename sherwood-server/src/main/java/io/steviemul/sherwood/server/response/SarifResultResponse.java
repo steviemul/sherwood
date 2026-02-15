@@ -12,5 +12,8 @@ public record SarifResultResponse(
     String snippet,
     String description,
     String ruleId,
+    Double confidence,
+    Boolean reachable,
+    String graph,
     LocalDateTime created,
     LocalDateTime updated) {}

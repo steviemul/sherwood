@@ -43,6 +43,10 @@ public class SarifService {
     resultsService.processResults(sarifFile, sarif);
   }
 
+  public List<SarifResponse> getAllSarifs() {
+    return sarifRepository.findAll().stream().map(SarifMapper::sarifEntityToSarifResponse).toList();
+  }
+
   public SarifResponse getSarifResponseById(UUID id) {
     return sarifRepository
         .findById(id)
@@ -51,6 +55,16 @@ public class SarifService {
             () ->
                 new ResponseStatusException(
                     HttpStatus.NOT_FOUND, "Sarif not found with id: " + id));
+  }
+
+  public SarifResultResponse getResultById(UUID resultId) {
+    return resultsService
+        .getResultById(resultId)
+        .map(SarifMapper::sarifResultEntityToSarifResultResponse)
+        .orElseThrow(
+            () ->
+                new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Result not found with id: " + resultId));
   }
 
   public List<SarifResultResponse> getResultsBySarifId(UUID sarifId) {

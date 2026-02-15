@@ -7,6 +7,9 @@ CREATE TABLE results (
     snippet TEXT,
     description TEXT,
     rule_id VARCHAR(255) NOT NULL,
+    confidence DECIMAL DEFAULT 0.0,
+    reachable BOOLEAN DEFAULT false,
+    graph TEXT,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_results_sarif FOREIGN KEY (sarif) REFERENCES sarifs(id) ON DELETE CASCADE
