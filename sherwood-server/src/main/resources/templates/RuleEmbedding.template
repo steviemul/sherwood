@@ -1,0 +1,12 @@
+Id: {id}
+Name: {name}
+Severity: {severity}
+Category: {category}
+CWE: {cwe}
+Languages: {languages}
+
+Description:
+{description}
+
+Information:
+{information}

@@ -1,5 +1,6 @@
-package io.steviemul.sherwood.server.service;
+package io.steviemul.sherwood.server.service.jobs;
 
+import io.steviemul.sherwood.server.service.sarif.SarifIngestService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

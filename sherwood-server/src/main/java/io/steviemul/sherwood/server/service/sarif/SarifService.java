@@ -1,4 +1,4 @@
-package io.steviemul.sherwood.server.service;
+package io.steviemul.sherwood.server.service.sarif;
 
 import io.steviemul.sherwood.sarif.SarifSchema210;
 import io.steviemul.sherwood.server.entity.sarif.Sarif;

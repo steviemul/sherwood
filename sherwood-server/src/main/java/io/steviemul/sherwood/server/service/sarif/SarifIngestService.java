@@ -1,4 +1,4 @@
-package io.steviemul.sherwood.server.service;
+package io.steviemul.sherwood.server.service.sarif;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.steviemul.sherwood.sarif.Result;

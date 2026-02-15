@@ -1,4 +1,4 @@
-package io.steviemul.sherwood.server.service;
+package io.steviemul.sherwood.server.service.sarif;
 
 import io.steviemul.sherwood.server.config.StorageProperties;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package io.steviemul.sherwood.server.service;
+package io.steviemul.sherwood.server.service.sarif;
 
 import static io.steviemul.sherwood.server.utils.ResultHelper.getAnalysis;
 import static io.steviemul.sherwood.server.utils.ResultHelper.getFingerprint;
