@@ -1,5 +1,7 @@
 package io.steviemul.sherwood.server.service.sarif;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.steviemul.sherwood.sarif.SarifSchema210;
 import io.steviemul.sherwood.server.config.StorageProperties;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +25,7 @@ public class StorageService {
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;
   private final StorageProperties storageProperties;
+  private final ObjectMapper objectMapper;
 
   public String uploadSarif(MultipartFile file) throws IOException {
     String key = generateKey(file.getOriginalFilename());
@@ -38,6 +41,15 @@ public class StorageService {
     s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
     return key;
+  }
+
+  public SarifSchema210 readSarif(String storageKey) {
+
+    try (InputStream is = this.getObject(storageKey)) {
+      return objectMapper.readValue(is, SarifSchema210.class);
+    } catch (IOException e) {
+      throw new RuntimeException("Error processing sarif", e);
+    }
   }
 
   public InputStream getObject(String storageKey) {

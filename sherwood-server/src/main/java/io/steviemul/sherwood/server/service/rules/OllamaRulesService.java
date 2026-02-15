@@ -11,6 +11,6 @@ public class OllamaRulesService {
   private final OllamaRuleRepository ollamaRuleRepository;
 
   public boolean ruleExists(String ruleId) {
-    return (ollamaRuleRepository.findByRuleId(ruleId) != null);
+    return ollamaRuleRepository.findByRuleId(ruleId).isPresent();
   }
 }

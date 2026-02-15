@@ -48,12 +48,6 @@ public class RulesVectorService {
     return new Document(embeddingContents, templateService.objectToMap(ruleRequest));
   }
 
-  public float[] getEmbedding(RuleRequest ruleRequest) {
-    String embeddingContents = templateService.renderRuleEmbedding(ruleRequest);
-
-    return embeddingModel.embed(embeddingContents);
-  }
-
   public List<DocumentResponse> search(
       String vendor, QueryAdjustments adjustments, RuleRequest ruleRequest) {
     return similaritySearch(vendor, adjustments, ruleRequest);

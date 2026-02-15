@@ -49,9 +49,13 @@ public class SherwoodController {
 
       log.info("Sarif info saved with id {}", sarif.getId());
 
-      UUID jobId = jobService.submitSarifIngestJob(key, sarif.getId());
+      UUID sarifJobId = jobService.submitSarifIngestJob(key, sarif.getId());
 
-      log.info("Sarif ingest job submitted with job id {}", jobId);
+      log.info("Sarif ingest job submitted with job id {}", sarifJobId);
+
+      UUID rulesJobId = jobService.submitSarifRulesIngestJob(key);
+
+      log.info("Rules ingest job submitted with job id {}", rulesJobId);
 
       return ResponseEntity.accepted().build();
     } catch (Exception e) {

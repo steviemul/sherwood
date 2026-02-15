@@ -10,8 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -49,14 +47,6 @@ public class TemplateService {
     }
 
     return builder.toString();
-  }
-
-  private String renderMapWithTemplate(Map<String, Object> data) {
-
-    PromptTemplate template =
-        PromptTemplate.builder().resource(new ClassPathResource(RULE_TEMPLATE_RESOURCE)).build();
-
-    return template.render(data);
   }
 
   public Map<String, Object> ruleRequestToTemplateMap(RuleRequest ruleRequest) {
