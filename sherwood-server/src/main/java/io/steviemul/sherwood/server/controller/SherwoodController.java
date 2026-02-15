@@ -8,8 +8,8 @@ import io.steviemul.sherwood.server.response.SarifResponse;
 import io.steviemul.sherwood.server.response.SarifResultResponse;
 import io.steviemul.sherwood.server.response.SarifResultSimilarityResponse;
 import io.steviemul.sherwood.server.service.jobs.JobService;
+import io.steviemul.sherwood.server.service.sarif.ResultsSimilarityService;
 import io.steviemul.sherwood.server.service.sarif.SarifService;
-import io.steviemul.sherwood.server.service.sarif.SimilarityService;
 import io.steviemul.sherwood.server.service.sarif.StorageService;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +31,7 @@ public class SherwoodController {
   private final SarifService sarifService;
   private final StorageService storageService;
   private final JobService jobService;
-  private final SimilarityService similarityService;
+  private final ResultsSimilarityService similarityService;
 
   @GetMapping(STATUS_ROUTE)
   public ResponseEntity<String> getStatus() {
