@@ -24,12 +24,16 @@ Security scanners often produce overwhelming amounts of results in SARIF format.
 
 ## Architecture
 
-Sherwood is a multi-module Maven project (Java 21):
+Sherwood is a multi-module project consisting of:
 
+**Backend (Maven, Java 21):**
 - **`sarif-model`**: Auto-generated Java POJOs from SARIF 2.1.0 JSON schema
 - **`parsers`**: Language parsers using ANTLR4 for call graph analysis and reachability detection
 - **`sherwood-server`**: Spring Boot (WebFlux) REST API for analysis services
 - **`sherwood-cli`**: Command-line interface for processing SARIF files
+
+**Frontend:**
+- **`sherwood-frontend`**: React 19 + TypeScript + Vite web interface with Material-UI for visualization and analysis
 
 ## Quick Start
 
@@ -37,6 +41,7 @@ Sherwood is a multi-module Maven project (Java 21):
 
 - Java 21+
 - Maven 3.6+
+- Node.js 18+ & npm (for frontend development)
 - Docker & Docker Compose (for local development)
 
 ### Build
@@ -54,7 +59,7 @@ mvn com.spotify.fmt:fmt-maven-plugin:format
 
 ### Run Locally
 
-Start PostgreSQL (with pgvector) and Ollama:
+Start all required services (PostgreSQL, Ollama, MinIO, Caddy):
 
 ```bash
 docker compose up -d
@@ -64,7 +69,17 @@ Run the Spring Boot server:
 
 ```bash
 mvn -pl sherwood-server spring-boot:run
-# Server starts on http://localhost:12080
+# Backend API: http://localhost:12080
+# JobRunr Dashboard: http://localhost:13080
+```
+
+Run the frontend (development mode):
+
+```bash
+cd sherwood-frontend
+npm install
+npm run dev
+# Frontend: http://localhost:14080
 ```
 
 Or run the CLI:
@@ -72,6 +87,22 @@ Or run the CLI:
 ```bash
 java -jar sherwood-cli/target/sherwood-cli-*.jar [options]
 ```
+
+### Runtime Dependencies
+
+The `docker-compose.yml` provides all required services:
+
+- **PostgreSQL** with **pgvector** extension (port 5432) - data persistence and Spring AI vector store
+- **Ollama** (port 11434) - AI-powered analysis via Spring AI
+- **MinIO** (ports 9000/9001) - S3-compatible object storage for SARIF files
+- **Caddy** (port 14080) - reverse proxy serving frontend and proxying API requests
+
+Services are configured to:
+- **Backend API**: `http://localhost:12080`
+- **JobRunr Dashboard**: `http://localhost:13080` - background job monitoring
+- **Frontend**: `http://localhost:14080` - served by Caddy
+- **MinIO Console**: `http://localhost:9001` - S3 storage admin
+- **PostgreSQL**: `jdbc:postgresql://localhost:5432/sherwood_db` (user: `postgres`, password: `password`)
 
 ## Features
 
@@ -118,9 +149,19 @@ spring:
   flyway:
     sql-migration-prefix: T
     out-of-order: true
+
+storage:
+  s3:
+    endpoint: http://localhost:9000  # MinIO
+    sarif-bucket: sarif
+
+jobrunr:
+  dashboard:
+    enabled: true
+    port: 13080
 ```
 
-Database migrations are in `sherwood-server/src/main/resources/db/migration/`
+Database migrations are in `sherwood-server/src/main/resources/db/migration/` using the `T` prefix (e.g., `T2026.02.15.15.00__description.sql`)
 
 ## Development
 
@@ -156,7 +197,13 @@ sherwood/
 │   └── grammers/java/  # ANTLR4 Java 20 grammar
 ├── sherwood-server/    # Spring Boot REST API
 │   └── src/main/resources/db/migration/  # Flyway migrations
-└── sherwood-cli/       # Command-line interface
+├── sherwood-cli/       # Command-line interface
+├── sherwood-frontend/  # React + TypeScript web UI
+│   ├── src/            # React components and pages
+│   ├── Caddyfile       # Caddy reverse proxy config
+│   └── dist/           # Production build output
+├── sarifs/             # Sample SARIF files for testing
+└── http-requests/      # HTTP client request files
 ```
 
 ## License
@@ -164,5 +211,8 @@ sherwood/
 This project uses:
 - SARIF Schema 2.1.0 (generated via jsonschema2pojo)
 - ANTLR4 for Java parsing
-- Spring Boot 3.5.x
+- Spring Boot 3.5.10
+- React 19 with TypeScript and Vite
 - PostgreSQL with pgvector extension
+- MinIO for S3-compatible storage
+- Ollama for local LLM integration
