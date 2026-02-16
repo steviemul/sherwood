@@ -135,6 +135,103 @@ Each finding receives a confidence score based on reachability:
 - **0.5**: Internal method (not directly reachable)
 - **0.0**: Isolated/unreachable code
 
+### Results Correlation
+
+Sherwood correlates security findings across multiple SARIF files to identify duplicate results from different scanning tools, reducing noise and consolidating findings. This two-phase approach enriches SARIF files with context and then performs intelligent matching.
+
+#### Phase 1: CLI Enrichment
+
+The CLI enriches SARIF files with contextual information needed for accurate correlation:
+
+**Code Context:**
+- Extracts source code snippets from the actual source files
+- Embeds snippets directly into SARIF results for display and analysis
+- Preserves line numbers and file locations
+
+**Reachability Analysis:**
+- Performs call graph analysis to determine vulnerability reachability
+- Generates execution paths from entry points to vulnerable code
+- Creates SHA-256 fingerprints for each method in the execution path
+- Stores path fingerprints as ordered sequences: `[methodA_hash, methodB_hash, methodC_hash]`
+- Embeds analysis results including confidence scores and Mermaid diagrams
+
+**Execution Path Fingerprints:**
+
+For each result, the CLI generates fingerprints for every method in the call path:
+```java
+// Path: main() → processRequest() → vulnerableMethod()
+// Fingerprints: ["abc123...", "def456...", "789xyz..."]
+```
+
+Each fingerprint is a SHA-256 hash of:
+- Method name
+- Fully qualified class name
+- Parameter types
+
+These fingerprints enable precise matching of execution flows between different scan results.
+
+#### Phase 2: Server Correlation
+
+The server performs multi-factor similarity analysis to identify related results:
+
+**Pre-filtering:**
+1. **Repository Match**: Only compares results from the same repository
+2. **Location Filtering**: Focuses on results in similar file paths
+3. **Line Number Threshold**: Considers results within ±5 lines
+
+**Similarity Scoring (Weighted Algorithm):**
+
+The server calculates a composite similarity score using four factors:
+
+1. **Rule Similarity (40% weight)**
+   - Compares security rule descriptions using AI embeddings
+   - Uses cosine similarity between rule embedding vectors
+   - Identifies when different scanners detect the same vulnerability type
+
+2. **Distance Score (40% weight)**
+   - Normalizes line number distance: `1.0 - (distance / threshold)`
+   - Results on the same line score 1.0; results 5+ lines apart score 0.0
+
+3. **Code Similarity (30% weight)**
+   - Compares extracted code snippets using AI embeddings
+   - Detects functionally similar code patterns
+   - Handles minor formatting differences
+
+4. **Path Similarity (30% weight)**
+   - Compares execution path fingerprints position-by-position
+   - Score = `matching_positions / max(pathA.length, pathB.length)`
+   - Perfect path match indicates identical execution flow
+
+**Final Similarity Score:**
+```
+similarity = (0.4 × ruleSim + 0.4 × distScore + 0.3 × codeSim + 0.3 × pathSim) / 1.4
+```
+
+**Perfect Matches:**
+
+When result fingerprints (from SARIF `fingerprints` or `partialFingerprints`) match exactly, the system assigns a similarity of 1.0 and skips detailed analysis—this handles results from the same scanner across different runs.
+
+**Example Correlation:**
+
+```
+Result A (Semgrep): SQL Injection at UserService.java:42
+Result B (Snyk): Injection Vulnerability at UserService.java:43
+
+Correlation Analysis:
+├─ Location: UserService.java ✓ (matched)
+├─ Line Distance: 1 → score 0.8
+├─ Rule Similarity: 0.92 (both detect SQL injection)
+├─ Code Similarity: 0.87 (same code snippet)
+├─ Path Similarity: 0.95 (95% path overlap)
+└─ Final Similarity: 0.89 → High confidence correlation
+```
+
+This multi-layered approach ensures accurate correlation even when:
+- Different scanners use different rule IDs
+- Line numbers vary slightly due to formatting
+- Code snippets have minor whitespace differences
+- Execution paths are analyzed at different granularities
+
 ## Configuration
 
 Configuration is managed via `application.yml`:
