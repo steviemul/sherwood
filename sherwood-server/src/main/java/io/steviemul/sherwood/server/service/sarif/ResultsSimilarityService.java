@@ -110,7 +110,8 @@ public class ResultsSimilarityService {
         candidate.getDescription(),
         candidate.getSnippet(),
         similarity,
-        reason);
+        reason,
+        candidate.getSarif().getVendor());
   }
 
   private double getPathSimilarity(SarifResult resultA, SarifResult resultB) {
@@ -176,7 +177,8 @@ public class ResultsSimilarityService {
         candidate.getDescription(),
         candidate.getSnippet(),
         1.0,
-        "Fingerprints Match");
+        "Fingerprints Match",
+        candidate.getSarif().getVendor());
   }
 
   private double getSnippetSimilarity(SarifResult resultA, SarifResult resultB) {

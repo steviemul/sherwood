@@ -31,6 +31,7 @@ export interface SarifResultSimilarityResponse {
   location: string;
   lineNumber: number;
   ruleId: string;
+  vendor: string;
   similarity: number;
   reason: string;
 }

@@ -28,6 +28,7 @@ import {
   TableRow,
   IconButton,
   Tooltip,
+  TableSortLabel,
 } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
@@ -41,6 +42,8 @@ import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import mermaid from 'mermaid';
 import type { SarifResultResponse, SarifResultSimilarityResponse } from '../types/api';
 import { useThemeContext } from '../context/ThemeContext';
+
+type SimilaritySortField = 'location' | 'lineNumber' | 'ruleId' | 'vendor' | 'similarity';
 
 export const ResultDetailPage = () => {
   const { sarifId, resultId } = useParams<{ sarifId: string; resultId: string }>();
@@ -59,6 +62,8 @@ export const ResultDetailPage = () => {
   const [similaritiesFetched, setSimilaritiesFetched] = useState(false);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string>('');
+  const [similaritySortField, setSimilaritySortField] = useState<SimilaritySortField>('similarity');
+  const [similaritySortOrder, setSimilaritySortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Comparison state
   const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
@@ -155,6 +160,29 @@ export const ResultDetailPage = () => {
     setMatchingResult(null);
     setMatchingResultError(null);
   };
+
+  const handleSimilaritySort = (field: SimilaritySortField) => {
+    const isAsc = similaritySortField === field && similaritySortOrder === 'asc';
+    setSimilaritySortOrder(isAsc ? 'desc' : 'asc');
+    setSimilaritySortField(field);
+  };
+
+  const sortedSimilarities = [...similarities].sort((a, b) => {
+    let aValue: string | number = a[similaritySortField];
+    let bValue: string | number = b[similaritySortField];
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return similaritySortOrder === 'asc' 
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return similaritySortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+
+    return 0;
+  });
 
   useEffect(() => {
     if (result?.graph) {
@@ -377,15 +405,56 @@ export const ResultDetailPage = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell>ID</TableCell>
-                      <TableCell>Location</TableCell>
-                      <TableCell>Line Number</TableCell>
-                      <TableCell>Rule ID</TableCell>
-                      <TableCell>Similarity</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={similaritySortField === 'location'}
+                          direction={similaritySortField === 'location' ? similaritySortOrder : 'asc'}
+                          onClick={() => handleSimilaritySort('location')}
+                        >
+                          Location
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={similaritySortField === 'lineNumber'}
+                          direction={similaritySortField === 'lineNumber' ? similaritySortOrder : 'asc'}
+                          onClick={() => handleSimilaritySort('lineNumber')}
+                        >
+                          Line Number
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={similaritySortField === 'ruleId'}
+                          direction={similaritySortField === 'ruleId' ? similaritySortOrder : 'asc'}
+                          onClick={() => handleSimilaritySort('ruleId')}
+                        >
+                          Rule ID
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={similaritySortField === 'vendor'}
+                          direction={similaritySortField === 'vendor' ? similaritySortOrder : 'asc'}
+                          onClick={() => handleSimilaritySort('vendor')}
+                        >
+                          Vendor
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={similaritySortField === 'similarity'}
+                          direction={similaritySortField === 'similarity' ? similaritySortOrder : 'asc'}
+                          onClick={() => handleSimilaritySort('similarity')}
+                        >
+                          Similarity
+                        </TableSortLabel>
+                      </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {similarities.map((similarity, index) => (
+                    {sortedSimilarities.map((similarity, index) => (
                       <TableRow
                         key={similarity.matchingResultId}
                         hover
@@ -402,6 +471,7 @@ export const ResultDetailPage = () => {
                         <TableCell>{similarity.location}</TableCell>
                         <TableCell>{similarity.lineNumber}</TableCell>
                         <TableCell>{similarity.ruleId}</TableCell>
+                        <TableCell>{similarity.vendor}</TableCell>
                         <TableCell>
                           <Button
                             size="small"

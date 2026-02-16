@@ -10,4 +10,5 @@ public record SarifResultSimilarityResponse(
     String description,
     String snippet,
     double similarity,
-    String reason) {}
+    String reason,
+    String vendor) {}
