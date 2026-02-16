@@ -15,7 +15,12 @@ import {
   TableSortLabel,
   Breadcrumbs,
   Chip,
+  TextField,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import type { SarifResultResponse } from '../types/api';
 
 type SortField = 'location' | 'confidence' | 'reachable' | 'created' | 'updated' | 'ruleId';
@@ -28,6 +33,10 @@ export const ResultsListPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('created');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [locationFilterVisible, setLocationFilterVisible] = useState(false);
+  const [ruleIdFilterVisible, setRuleIdFilterVisible] = useState(false);
+  const [locationFilter, setLocationFilter] = useState('');
+  const [ruleIdFilter, setRuleIdFilter] = useState('');
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -58,7 +67,13 @@ export const ResultsListPage = () => {
     setSortField(field);
   };
 
-  const sortedResults = [...results].sort((a, b) => {
+  const filteredResults = results.filter(result => {
+    const matchesLocation = result.location.toLowerCase().includes(locationFilter.toLowerCase());
+    const matchesRuleId = result.ruleId.toLowerCase().includes(ruleIdFilter.toLowerCase());
+    return matchesLocation && matchesRuleId;
+  });
+
+  const sortedResults = [...filteredResults].sort((a, b) => {
     let aValue: string | number | boolean = a[sortField];
     let bValue: string | number | boolean = b[sortField];
 
@@ -118,23 +133,43 @@ export const ResultsListPage = () => {
             <TableRow>
               <TableCell>ID</TableCell>
               <TableCell>
-                <TableSortLabel
-                  active={sortField === 'location'}
-                  direction={sortField === 'location' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('location')}
-                >
-                  Location
-                </TableSortLabel>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <TableSortLabel
+                    active={sortField === 'location'}
+                    direction={sortField === 'location' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('location')}
+                  >
+                    Location
+                  </TableSortLabel>
+                  <IconButton
+                    size="small"
+                    onClick={() => setLocationFilterVisible(!locationFilterVisible)}
+                    color={locationFilterVisible ? 'primary' : 'default'}
+                    aria-label="toggle location filter"
+                  >
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               </TableCell>
               <TableCell>Line Number</TableCell>
               <TableCell>
-                <TableSortLabel
-                  active={sortField === 'ruleId'}
-                  direction={sortField === 'ruleId' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('ruleId')}
-                >
-                  Rule ID
-                </TableSortLabel>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <TableSortLabel
+                    active={sortField === 'ruleId'}
+                    direction={sortField === 'ruleId' ? sortOrder : 'asc'}
+                    onClick={() => handleSort('ruleId')}
+                  >
+                    Rule ID
+                  </TableSortLabel>
+                  <IconButton
+                    size="small"
+                    onClick={() => setRuleIdFilterVisible(!ruleIdFilterVisible)}
+                    color={ruleIdFilterVisible ? 'primary' : 'default'}
+                    aria-label="toggle rule id filter"
+                  >
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               </TableCell>
               <TableCell>
                 <TableSortLabel
@@ -173,6 +208,64 @@ export const ResultsListPage = () => {
                 </TableSortLabel>
               </TableCell>
             </TableRow>
+            {(locationFilterVisible || ruleIdFilterVisible) && (
+              <TableRow>
+                <TableCell />
+                <TableCell>
+                  {locationFilterVisible && (
+                    <TextField
+                      size="small"
+                      placeholder="Filter location..."
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      fullWidth
+                      InputProps={{
+                        endAdornment: locationFilter && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => setLocationFilter('')}
+                              edge="end"
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+                </TableCell>
+                <TableCell />
+                <TableCell>
+                  {ruleIdFilterVisible && (
+                    <TextField
+                      size="small"
+                      placeholder="Filter rule ID..."
+                      value={ruleIdFilter}
+                      onChange={(e) => setRuleIdFilter(e.target.value)}
+                      fullWidth
+                      InputProps={{
+                        endAdornment: ruleIdFilter && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => setRuleIdFilter('')}
+                              edge="end"
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+                </TableCell>
+                <TableCell />
+                <TableCell />
+                <TableCell />
+                <TableCell />
+              </TableRow>
+            )}
           </TableHead>
           <TableBody>
             {sortedResults.map((result, index) => (
@@ -208,7 +301,9 @@ export const ResultsListPage = () => {
               <TableRow>
                 <TableCell colSpan={8} align="center">
                   <Typography variant="body2" color="text.secondary">
-                    No results found for this SARIF file.
+                    {locationFilter || ruleIdFilter
+                      ? 'No results match the current filters.'
+                      : 'No results found for this SARIF file.'}
                   </Typography>
                 </TableCell>
               </TableRow>
