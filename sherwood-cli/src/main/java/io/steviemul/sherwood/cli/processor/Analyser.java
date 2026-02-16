@@ -1,5 +1,6 @@
 package io.steviemul.sherwood.cli.processor;
 
+import io.steviemul.sherwood.cli.context.LocalContextProvider;
 import io.steviemul.sherwood.cli.logging.Logger;
 import io.steviemul.sherwood.parsers.CallGraph;
 import io.steviemul.sherwood.parsers.LanguageParser;
@@ -97,6 +98,10 @@ public class Analyser {
     }
 
     Logger.taskComplete("Analysed " + reachabilityResults.size() + " results");
+
+    LocalContextProvider localContextProvider = new LocalContextProvider(sourceCodeRoot);
+
+    localContextProvider.addLocalContext(sarif);
 
     sarifProcessor.writeSarif(sarif, outputPath);
 

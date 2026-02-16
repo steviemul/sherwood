@@ -35,7 +35,7 @@ public class SherwoodApiClient implements AutoCloseable {
    */
   public boolean isServerRunning() {
     try {
-      Request request = new Request.Builder().url(baseUrl + "/sherwood/status").get().build();
+      Request request = new Request.Builder().url(baseUrl + "/api/sherwood/status").get().build();
 
       try (Response response = client.newCall(request).execute()) {
         return response.isSuccessful()
@@ -66,7 +66,7 @@ public class SherwoodApiClient implements AutoCloseable {
             .build();
 
     Request request =
-        new Request.Builder().url(baseUrl + "/sherwood/upload").post(requestBody).build();
+        new Request.Builder().url(baseUrl + "/api/sherwood/sarifs").post(requestBody).build();
 
     try (Response response = client.newCall(request).execute()) {
       return response.isSuccessful();

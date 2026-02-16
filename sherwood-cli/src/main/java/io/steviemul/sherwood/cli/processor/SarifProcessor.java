@@ -7,8 +7,10 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 public class SarifProcessor {
 
   private final Path sarifPath;
@@ -20,7 +22,7 @@ public class SarifProcessor {
     try {
       return objectMapper.readValue(sarifPath.toFile(), SarifSchema210.class);
     } catch (Exception e) {
-
+      log.error("Error reading sarif file", e);
     }
 
     return null;
