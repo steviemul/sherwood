@@ -1,3 +1,6 @@
 package io.steviemul.sherwood.server.entity.sarif;
 
-public record ResultAnalysis(double confidence, boolean reachable, String graph) {}
+import java.util.List;
+
+public record ResultAnalysis(
+    double confidence, boolean reachable, String graph, List<AnalysisPath> path) {}

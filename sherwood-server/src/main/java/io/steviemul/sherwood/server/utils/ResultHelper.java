@@ -3,6 +3,7 @@ package io.steviemul.sherwood.server.utils;
 import io.steviemul.sherwood.sarif.Fingerprints;
 import io.steviemul.sherwood.sarif.PartialFingerprints;
 import io.steviemul.sherwood.sarif.Result;
+import io.steviemul.sherwood.server.entity.sarif.AnalysisPath;
 import io.steviemul.sherwood.server.entity.sarif.ResultAnalysis;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ public class ResultHelper {
   public static final String CONFIDENCE = "confidence";
   public static final String REACHABLE = "reachable";
   public static final String GRAPH = "graph";
+  public static final String PATH = "path";
 
   private static final List<String> SUPPORTED_FINGERPRINTS =
       List.of("SCAN_LSH/v1", "matchBasedId/v1", "0", "1");
@@ -93,7 +95,37 @@ public class ResultHelper {
     return new ResultAnalysis(
         (double) analysis.getOrDefault(CONFIDENCE, -1.0),
         (boolean) analysis.getOrDefault(REACHABLE, false),
-        (String) analysis.getOrDefault(GRAPH, ""));
+        (String) analysis.getOrDefault(GRAPH, ""),
+        getAnalysisPath(analysis.get(PATH)));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<AnalysisPath> getAnalysisPath(Object object) {
+    if (object == null) {
+      return Collections.emptyList();
+    }
+
+    try {
+      List<Map<String, Object>> pathList = (List<Map<String, Object>>) object;
+
+      return pathList.stream()
+          .map(
+              pathElement -> {
+                String name = (String) pathElement.get("name");
+                String qualifiedName = (String) pathElement.get("qualifiedName");
+                List<String> parameters =
+                    (List<String>) pathElement.getOrDefault("parameters", Collections.emptyList());
+
+                return AnalysisPath.builder()
+                    .name(name)
+                    .qualifiedName(qualifiedName)
+                    .parameters(parameters)
+                    .build();
+              })
+          .toList();
+    } catch (Exception e) {
+      return Collections.emptyList();
+    }
   }
 
   private static <T> T getOrDefault(Supplier<T> getter, T defaultValue) {

@@ -8,7 +8,9 @@ import static io.steviemul.sherwood.server.utils.ResultHelper.getSnippet;
 
 import io.steviemul.sherwood.sarif.Result;
 import io.steviemul.sherwood.sarif.SarifSchema210;
+import io.steviemul.sherwood.server.entity.sarif.AnalysisPath;
 import io.steviemul.sherwood.server.entity.sarif.ResultAnalysis;
+import io.steviemul.sherwood.server.entity.sarif.ResultPathFingerprint;
 import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.entity.sarif.SarifResult;
 import io.steviemul.sherwood.server.repository.ResultsRepository;
@@ -48,17 +50,35 @@ public class ResultsService {
 
     ResultAnalysis analysis = getAnalysis(result);
 
-    return SarifResult.builder()
-        .sarif(sarif)
-        .fingerprint(getFingerprint(result))
-        .ruleId(result.getRuleId())
-        .description(result.getMessage().getText())
-        .location(getLocation(result))
-        .lineNumber(getLineNumber(result))
-        .snippet(getSnippet(result))
-        .confidence(analysis.confidence())
-        .reachable(analysis.reachable())
-        .graph(analysis.graph())
-        .build();
+    SarifResult sarifResult =
+        SarifResult.builder()
+            .sarif(sarif)
+            .fingerprint(getFingerprint(result))
+            .ruleId(result.getRuleId())
+            .description(result.getMessage().getText())
+            .location(getLocation(result))
+            .lineNumber(getLineNumber(result))
+            .snippet(getSnippet(result))
+            .confidence(analysis.confidence())
+            .reachable(analysis.reachable())
+            .graph(analysis.graph())
+            .build();
+
+    // Populate path fingerprints if path exists
+    List<AnalysisPath> path = analysis.path();
+
+    if (path != null && !path.isEmpty()) {
+      for (int i = 0; i < path.size(); i++) {
+        AnalysisPath analysisPath = path.get(i);
+        String fingerprint = analysisPath.getFingerprint();
+
+        ResultPathFingerprint pathFingerprint =
+            ResultPathFingerprint.builder().fingerprint(fingerprint).fingerprintOrder(i).build();
+
+        sarifResult.getPathFingerprints().add(pathFingerprint);
+      }
+    }
+
+    return sarifResult;
   }
 }

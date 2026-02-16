@@ -2,6 +2,8 @@ package io.steviemul.sherwood.server.entity.sarif;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -54,6 +56,12 @@ public class SarifResult {
 
   @Column(name = "graph", columnDefinition = "TEXT")
   private String graph;
+
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+  @JoinColumn(name = "result_id", nullable = false)
+  @OrderBy("fingerprintOrder ASC")
+  @Builder.Default
+  private List<ResultPathFingerprint> pathFingerprints = new ArrayList<>();
 
   @CreationTimestamp
   @Column(name = "created", nullable = false, updatable = false)

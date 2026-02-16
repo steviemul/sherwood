@@ -42,4 +42,5 @@ jobrunr:
 
 logging:
   level:
+    io.steviemul: DEBUG
     org: INFO

@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import type { SarifResultResponse } from '../types/api';
 
-type SortField = 'location' | 'confidence' | 'reachable' | 'created' | 'updated';
+type SortField = 'location' | 'confidence' | 'reachable' | 'created' | 'updated' | 'ruleId';
 type SortOrder = 'asc' | 'desc';
 
 export const ResultsListPage = () => {
@@ -127,7 +127,15 @@ export const ResultsListPage = () => {
                 </TableSortLabel>
               </TableCell>
               <TableCell>Line Number</TableCell>
-              <TableCell>Rule ID</TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={sortField === 'ruleId'}
+                  direction={sortField === 'ruleId' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('ruleId')}
+                >
+                  Rule ID
+                </TableSortLabel>
+              </TableCell>
               <TableCell>
                 <TableSortLabel
                   active={sortField === 'confidence'}
