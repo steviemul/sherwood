@@ -7,5 +7,7 @@ public record SarifResultSimilarityResponse(
     String location,
     long lineNumber,
     String ruleId,
+    String description,
+    String snippet,
     double similarity,
     String reason) {}

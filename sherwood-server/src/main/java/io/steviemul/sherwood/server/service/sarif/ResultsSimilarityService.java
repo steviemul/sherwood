@@ -64,6 +64,10 @@ public class ResultsSimilarityService {
   private SarifResultSimilarityResponse toSimilarityResponse(
       SarifResult result, SarifResult candidate) {
 
+    if (result.getFingerprint().equals(candidate.getFingerprint())) {
+      return getFingerprintMatchesSimilarityResponse(candidate);
+    }
+
     OllamaRule resultRule = getRule(result.getRuleId());
     OllamaRule candidateRule = getRule(candidate.getRuleId());
 
@@ -76,20 +80,42 @@ public class ResultsSimilarityService {
 
     double similarity = calculateCombinedSimilarity(ruleSimilarity, distance, snippetSimilarity);
 
-    StringBuilder reason =
-        new StringBuilder()
-            .append("Location : " + result.getLocation() + " matched (1.0) \n")
-            .append("Line distance : " + distance + " \n")
-            .append("Rule Similarity : " + ruleSimilarity + " \n")
-            .append("Code Similarity : " + snippetSimilarity);
+    String reason =
+        "Location : "
+            + result.getLocation()
+            + " matched (1.0) \n"
+            + "Line distance : "
+            + distance
+            + " \n"
+            + "Rule Similarity : "
+            + ruleSimilarity
+            + " \n"
+            + "Code Similarity : "
+            + snippetSimilarity;
 
     return new SarifResultSimilarityResponse(
         candidate.getId(),
         candidate.getLocation(),
         candidate.getLineNumber(),
         candidate.getRuleId(),
+        candidate.getDescription(),
+        candidate.getSnippet(),
         similarity,
-        reason.toString());
+        reason);
+  }
+
+  private SarifResultSimilarityResponse getFingerprintMatchesSimilarityResponse(
+      SarifResult candidate) {
+
+    return new SarifResultSimilarityResponse(
+        candidate.getId(),
+        candidate.getLocation(),
+        candidate.getLineNumber(),
+        candidate.getRuleId(),
+        candidate.getDescription(),
+        candidate.getSnippet(),
+        1.0,
+        "Fingerprints Match");
   }
 
   private double getSnippetSimilarity(SarifResult resultA, SarifResult resultB) {
@@ -98,7 +124,7 @@ public class ResultsSimilarityService {
       return codeSimilarityService.getSimilarity(resultA.getSnippet(), resultB.getSnippet());
     }
 
-    return 1.0;
+    return 0.0;
   }
 
   private OllamaRule getRule(String ruleId) {

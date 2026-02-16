@@ -34,6 +34,7 @@ import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -58,8 +59,21 @@ export const ResultDetailPage = () => {
   const [similaritiesFetched, setSimilaritiesFetched] = useState(false);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string>('');
+  
+  // Comparison state
+  const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
+  const [selectedSimilarity, setSelectedSimilarity] = useState<SarifResultSimilarityResponse | null>(null);
+  const [matchingResult, setMatchingResult] = useState<SarifResultResponse | null>(null);
+  const [matchingResultLoading, setMatchingResultLoading] = useState(false);
+  const [matchingResultError, setMatchingResultError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Reset similarities state when navigating to a different result
+    setSimilarities([]);
+    setSimilaritiesExpanded(false);
+    setSimilaritiesFetched(false);
+    setSimilaritiesError(null);
+    
     const fetchResult = async () => {
       if (!sarifId || !resultId) return;
 
@@ -112,6 +126,34 @@ export const ResultDetailPage = () => {
   const handleSimilarityClick = (reason: string) => {
     setSelectedReason(reason);
     setReasonDialogOpen(true);
+  };
+
+  const handleCompareClick = async (similarity: SarifResultSimilarityResponse) => {
+    setSelectedSimilarity(similarity);
+    setComparisonDialogOpen(true);
+    setMatchingResult(null);
+    setMatchingResultError(null);
+    
+    try {
+      setMatchingResultLoading(true);
+      const response = await fetch(`/api/sherwood/sarifs/${sarifId}/results/${similarity.matchingResultId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch result: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setMatchingResult(data);
+    } catch (err) {
+      setMatchingResultError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setMatchingResultLoading(false);
+    }
+  };
+
+  const handleComparisonDialogClose = () => {
+    setComparisonDialogOpen(false);
+    setSelectedSimilarity(null);
+    setMatchingResult(null);
+    setMatchingResultError(null);
   };
 
   useEffect(() => {
@@ -339,6 +381,7 @@ export const ResultDetailPage = () => {
                       <TableCell>Line Number</TableCell>
                       <TableCell>Rule ID</TableCell>
                       <TableCell>Similarity</TableCell>
+                      <TableCell></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -367,6 +410,17 @@ export const ResultDetailPage = () => {
                           >
                             {(similarity.similarity * 100).toFixed(0)}%
                           </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title="Compare" placement="left">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleCompareClick(similarity)}
+                              color="primary"
+                            >
+                              <CompareArrowsIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -541,6 +595,197 @@ export const ResultDetailPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReasonDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Comparison Dialog */}
+      <Dialog 
+        open={comparisonDialogOpen} 
+        onClose={handleComparisonDialogClose}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Result Comparison</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            {/* Side-by-side comparison */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                gap: 3,
+                mb: 3,
+              }}
+            >
+              {/* Main Result (Left) */}
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Main Result
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Rule ID
+                      </Typography>
+                      <Typography variant="body1">{result?.ruleId || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Location
+                      </Typography>
+                      <Typography variant="body1">{result?.location || 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Line Number
+                      </Typography>
+                      <Typography variant="body1">{result?.lineNumber ?? 'N/A'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Description
+                      </Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {result?.description || 'N/A'}
+                      </Typography>
+                    </Box>
+                    {result?.snippet && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Snippet
+                        </Typography>
+                        <Box sx={{ overflow: 'auto', maxHeight: '300px' }}>
+                          <SyntaxHighlighter
+                            language={getLanguageFromLocation(result.location)}
+                            style={mode === 'dark' ? vscDarkPlus : vs}
+                            showLineNumbers
+                            customStyle={{ fontSize: '0.85rem' }}
+                          >
+                            {result.snippet}
+                          </SyntaxHighlighter>
+                        </Box>
+                      </Box>
+                    )}
+                    {!result?.snippet && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Snippet
+                        </Typography>
+                        <Typography variant="body1">N/A</Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              {/* Matching Result (Right) */}
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="secondary">
+                    Similar Result
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  {matchingResultLoading && (
+                    <Box display="flex" justifyContent="center" py={3}>
+                      <CircularProgress />
+                    </Box>
+                  )}
+                  {matchingResultError && (
+                    <Alert severity="error">{matchingResultError}</Alert>
+                  )}
+                  {!matchingResultLoading && !matchingResultError && matchingResult && (
+                    <Stack spacing={2}>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Rule ID
+                        </Typography>
+                        <Typography variant="body1">{matchingResult.ruleId || 'N/A'}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Location
+                        </Typography>
+                        <Typography variant="body1">{matchingResult.location || 'N/A'}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Line Number
+                        </Typography>
+                        <Typography variant="body1">{matchingResult.lineNumber ?? 'N/A'}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Description
+                        </Typography>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                          {matchingResult.description || 'N/A'}
+                        </Typography>
+                      </Box>
+                      {matchingResult.snippet && (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Snippet
+                          </Typography>
+                          <Box sx={{ overflow: 'auto', maxHeight: '300px' }}>
+                            <SyntaxHighlighter
+                              language={getLanguageFromLocation(matchingResult.location)}
+                              style={mode === 'dark' ? vscDarkPlus : vs}
+                              showLineNumbers
+                              customStyle={{ fontSize: '0.85rem' }}
+                            >
+                              {matchingResult.snippet}
+                            </SyntaxHighlighter>
+                          </Box>
+                        </Box>
+                      )}
+                      {!matchingResult.snippet && (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Snippet
+                          </Typography>
+                          <Typography variant="body1">N/A</Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Similarity and Reason Section */}
+            {selectedSimilarity && (
+              <Card variant="outlined" sx={{ backgroundColor: 'action.hover' }}>
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Similarity Score
+                      </Typography>
+                      <Chip 
+                        label={`${(selectedSimilarity.similarity * 100).toFixed(0)}%`}
+                        color="primary"
+                        size="medium"
+                      />
+                    </Box>
+                    <Divider />
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Similarity Reason
+                      </Typography>
+                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {selectedSimilarity.reason}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleComparisonDialogClose}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
