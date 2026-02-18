@@ -28,10 +28,13 @@ export interface SarifResultResponse {
 
 export interface SarifResultSimilarityResponse {
   matchingResultId: string;
+  sarifId: string;
   location: string;
   lineNumber: number;
   ruleId: string;
   vendor: string;
   similarity: number;
   reason: string;
+  description?: string;
+  snippet?: string;
 }

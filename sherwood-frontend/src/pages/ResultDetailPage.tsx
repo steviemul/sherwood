@@ -141,7 +141,7 @@ export const ResultDetailPage = () => {
     
     try {
       setMatchingResultLoading(true);
-      const response = await fetch(`/api/sherwood/sarifs/${sarifId}/results/${similarity.matchingResultId}`);
+      const response = await fetch(`/api/sherwood/sarifs/${similarity.sarifId}/results/${similarity.matchingResultId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch result: ${response.statusText}`);
       }
@@ -462,7 +462,7 @@ export const ResultDetailPage = () => {
                       >
                         <TableCell>
                           <Link
-                            to={`/sarifs/${sarifId}/results/${similarity.matchingResultId}`}
+                            to={`/sarifs/${similarity.sarifId}/results/${similarity.matchingResultId}`}
                             style={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}
                           >
                             {similarity.matchingResultId.substring(0, 8)}...

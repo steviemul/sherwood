@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record SarifResultSimilarityResponse(
     UUID matchingResultId,
+    UUID sarifId,
     String location,
     long lineNumber,
     String ruleId,

@@ -101,6 +101,7 @@ public class ResultsSimilarityService {
 
     return new SarifResultSimilarityResponse(
         candidate.getId(),
+        candidate.getSarif().getId(),
         candidate.getLocation(),
         candidate.getLineNumber(),
         candidate.getRuleId(),
@@ -147,6 +148,7 @@ public class ResultsSimilarityService {
 
     return new SarifResultSimilarityResponse(
         candidate.getId(),
+        candidate.getSarif().getId(),
         candidate.getLocation(),
         candidate.getLineNumber(),
         candidate.getRuleId(),
