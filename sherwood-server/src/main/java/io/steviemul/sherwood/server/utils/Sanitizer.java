@@ -13,10 +13,10 @@ public class Sanitizer {
 
     List<String> output = new ArrayList<>();
 
-    for (int i = 0; i < strings.length; i++) {
-      if (strings[i] == null) continue;
+    for (String string : strings) {
+      if (string == null) continue;
 
-      output.add(sanitize(strings[i]));
+      output.add(sanitize(string));
     }
 
     return String.join(".\n", output);

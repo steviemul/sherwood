@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OllamaConfiguration {
 
+  private static final String TEXT_EMBEDDING_MODEL = "nomic-embed-text";
+
   private final OllamaApi ollamaApi = OllamaApi.builder().build();
 
   private final ModelManagementOptions modelManagementOptions =
@@ -21,7 +23,7 @@ public class OllamaConfiguration {
   public EmbeddingModel ollamaTextEmbeddingModel() {
 
     OllamaEmbeddingOptions options =
-        OllamaEmbeddingOptions.builder().model("nomic-embed-text").build();
+        OllamaEmbeddingOptions.builder().model(TEXT_EMBEDDING_MODEL).build();
 
     return OllamaEmbeddingModel.builder()
         .ollamaApi(ollamaApi)

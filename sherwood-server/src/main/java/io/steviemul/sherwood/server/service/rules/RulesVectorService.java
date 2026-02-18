@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
@@ -23,7 +22,6 @@ public class RulesVectorService {
 
   private final VectorStore rulesVectorStore;
   private final TemplateService templateService;
-  private final EmbeddingModel embeddingModel;
 
   private static final String VENDOR = "vendor";
 

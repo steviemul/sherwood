@@ -1,7 +1,6 @@
 package io.steviemul.sherwood.server.controller;
 
 import static io.steviemul.sherwood.server.constant.Routes.SARIFS_ROUTE;
-import static io.steviemul.sherwood.server.constant.Routes.STATUS_ROUTE;
 
 import io.steviemul.sherwood.server.entity.sarif.Sarif;
 import io.steviemul.sherwood.server.response.SarifResponse;
@@ -32,12 +31,6 @@ public class SherwoodController {
   private final StorageService storageService;
   private final JobService jobService;
   private final ResultsSimilarityService similarityService;
-
-  @GetMapping(STATUS_ROUTE)
-  public ResponseEntity<String> getStatus() {
-
-    return ResponseEntity.ok("RUNNING");
-  }
 
   @PostMapping(SARIFS_ROUTE)
   public ResponseEntity<String> uploadSarif(@RequestPart("sarif") MultipartFile sarifFile) {
@@ -88,17 +81,18 @@ public class SherwoodController {
 
   @GetMapping(SARIFS_ROUTE + "/{id}/results/{resultId}")
   public ResponseEntity<SarifResultResponse> getResultById(
-      @PathVariable("id") UUID id, @PathVariable("resultId") UUID resultId) {
-    SarifResultResponse result = sarifService.getResultById(resultId);
+      @PathVariable("id") UUID sarifId, @PathVariable("resultId") UUID resultId) {
+    SarifResultResponse result = sarifService.getResultById(sarifId, resultId);
 
     return ResponseEntity.ok(result);
   }
 
   @GetMapping(SARIFS_ROUTE + "/{id}/results/{resultId}/similarities")
   public ResponseEntity<List<SarifResultSimilarityResponse>> getResultMatchesById(
-      @PathVariable("id") UUID id, @PathVariable("resultId") UUID resultId) {
+      @PathVariable("id") UUID sarifId, @PathVariable("resultId") UUID resultId) {
 
-    List<SarifResultSimilarityResponse> matches = similarityService.findSimilarResults(resultId);
+    List<SarifResultSimilarityResponse> matches =
+        similarityService.findSimilarResults(sarifId, resultId);
 
     return ResponseEntity.ok(matches);
   }

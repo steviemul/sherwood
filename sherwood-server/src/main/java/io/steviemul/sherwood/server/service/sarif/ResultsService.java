@@ -42,8 +42,8 @@ public class ResultsService {
     return resultsRepository.findBySarifId(sarifId);
   }
 
-  public Optional<SarifResult> getResultById(UUID resultId) {
-    return resultsRepository.findById(resultId);
+  public Optional<SarifResult> getResultBySarifIfAndId(UUID sarifId, UUID id) {
+    return resultsRepository.findBySarifIdAndId(sarifId, id);
   }
 
   private SarifResult toSarifResultEntity(Result result, Sarif sarif) {

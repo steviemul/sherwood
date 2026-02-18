@@ -132,9 +132,9 @@ public class SarifService {
         sarifResponse.updated());
   }
 
-  public SarifResultResponse getResultById(UUID resultId) {
+  public SarifResultResponse getResultById(UUID sarifId, UUID resultId) {
     return resultsService
-        .getResultById(resultId)
+        .getResultBySarifIfAndId(sarifId, resultId)
         .map(SarifMapper::sarifResultEntityToSarifResultResponse)
         .orElseThrow(
             () ->

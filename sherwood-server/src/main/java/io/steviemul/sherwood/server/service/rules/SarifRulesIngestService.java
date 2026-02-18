@@ -63,6 +63,7 @@ public class SarifRulesIngestService {
   private void ingestRule(String id, ReportingDescriptor rule) {
 
     String name = rule.getName();
+
     String severity =
         getOrDefault(() -> rule.getDefaultConfiguration().getLevel().toString(), DEFAULT_SEVERITY);
 

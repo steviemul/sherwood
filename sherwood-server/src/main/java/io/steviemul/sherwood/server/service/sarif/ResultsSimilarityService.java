@@ -29,16 +29,25 @@ public class ResultsSimilarityService {
   private final CodeSimilarityService codeSimilarityService;
 
   private static final int LINE_NUMBER_THRESHOLD = 5;
+  private static final double SIMILARITY_THRESHOLD = 0.0;
+
   private static final double RULE_SIMILARITY_WEIGHT = 0.4;
   private static final double CODE_SIMILARITY_WEIGHT = 0.3;
   private static final double DISTANCE_WEIGHT = 0.4;
   private static final double PATH_SIMILARITY_WEIGHT = 0.3;
 
-  private static final double SIMILARITY_THRESHOLD = 0.0;
+  private static final String REASON_TEMPLATE =
+      """
+      Location : %s matched (1.0)
+      Line Distance : %s
+      Rule Similarity : %s
+      Code Similarity : %s
+      Path Similarity : %s
+    """;
 
-  public List<SarifResultSimilarityResponse> findSimilarResults(UUID resultId) {
+  public List<SarifResultSimilarityResponse> findSimilarResults(UUID sarifId, UUID resultId) {
 
-    SarifResult result = getResult(resultId);
+    SarifResult result = getResult(sarifId, resultId);
 
     String repository = result.getSarif().getRepository();
     String location = result.getLocation();
@@ -87,20 +96,8 @@ public class ResultsSimilarityService {
         calculateCombinedSimilarity(ruleSimilarity, distance, snippetSimilarity, pathSimilarity);
 
     String reason =
-        "Location : "
-            + result.getLocation()
-            + " matched (1.0) \n"
-            + "Line distance : "
-            + distance
-            + " \n"
-            + "Rule Similarity : "
-            + ruleSimilarity
-            + " \n"
-            + "Code Similarity : "
-            + snippetSimilarity
-            + " \n"
-            + "Path Similarity : "
-            + pathSimilarity;
+        REASON_TEMPLATE.formatted(
+            result.getLocation(), distance, ruleSimilarity, snippetSimilarity, pathSimilarity);
 
     return new SarifResultSimilarityResponse(
         candidate.getId(),
@@ -115,28 +112,13 @@ public class ResultsSimilarityService {
   }
 
   private double getPathSimilarity(SarifResult resultA, SarifResult resultB) {
+
     List<ResultPathFingerprint> fingerprintsA = resultA.getPathFingerprints();
     List<ResultPathFingerprint> fingerprintsB = resultB.getPathFingerprints();
 
-    log.debug(
-        "Comparing path fingerprints - ResultA ID: {}, count: {}, ResultB ID: {}, count: {}",
-        resultA.getId(),
-        fingerprintsA.size(),
-        resultB.getId(),
-        fingerprintsB.size());
-
     // If either or both lists are empty, return 0.0
     if (fingerprintsA.isEmpty() || fingerprintsB.isEmpty()) {
-      log.debug("One or both path lists are empty, returning 0.0");
       return 0.0;
-    }
-
-    // Log first fingerprint from each for debugging
-    if (!fingerprintsA.isEmpty() && !fingerprintsB.isEmpty()) {
-      log.debug(
-          "First fingerprint A: {}, First fingerprint B: {}",
-          fingerprintsA.get(0).getFingerprint(),
-          fingerprintsB.get(0).getFingerprint());
     }
 
     // Count position-based matches
@@ -146,24 +128,18 @@ public class ResultsSimilarityService {
     for (int i = 0; i < minLength; i++) {
       String fpA = fingerprintsA.get(i).getFingerprint();
       String fpB = fingerprintsB.get(i).getFingerprint();
+
       boolean isMatch = fpA.equals(fpB);
+
       if (isMatch) {
         matches++;
       }
-      log.debug("Position {}: {} vs {} = {}", i, fpA, fpB, isMatch);
     }
 
     // Return matched count divided by length of longer list
     int maxLength = Math.max(fingerprintsA.size(), fingerprintsB.size());
-    double similarity = (double) matches / maxLength;
 
-    log.debug(
-        "Path similarity: {} matches out of {} total elements = {}",
-        matches,
-        maxLength,
-        similarity);
-
-    return similarity;
+    return (double) matches / maxLength;
   }
 
   private SarifResultSimilarityResponse getFingerprintMatchesSimilarityResponse(
@@ -202,9 +178,9 @@ public class ResultsSimilarityService {
     return ollamaRule;
   }
 
-  private SarifResult getResult(UUID resultId) {
+  private SarifResult getResult(UUID sarifId, UUID resultId) {
     return resultsRepository
-        .findById(resultId)
+        .findBySarifIdAndId(sarifId, resultId)
         .orElseThrow(
             () ->
                 new ResponseStatusException(
