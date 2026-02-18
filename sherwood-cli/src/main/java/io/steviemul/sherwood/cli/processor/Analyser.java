@@ -1,7 +1,7 @@
 package io.steviemul.sherwood.cli.processor;
 
 import io.steviemul.sherwood.cli.context.LocalContextProvider;
-import io.steviemul.sherwood.cli.logging.Logger;
+import io.steviemul.sherwood.cli.logging.CliFormattingLogger;
 import io.steviemul.sherwood.parsers.CallGraph;
 import io.steviemul.sherwood.parsers.LanguageParser;
 import io.steviemul.sherwood.parsers.Location;
@@ -25,11 +25,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.tongfei.progressbar.ProgressBar;
 import org.apache.commons.lang3.StringUtils;
 
 @RequiredArgsConstructor
 @Builder
+@Slf4j
 public class Analyser {
 
   private final Path sourceCodeRoot;
@@ -44,13 +46,13 @@ public class Analyser {
 
     Date start = new Date();
 
-    Logger.info("Reading source code");
+    log.info("Reading source code");
 
     RootScanner rootScanner = new RootScanner(sourceCodeRoot);
 
     List<Path> codeFiles = rootScanner.getAllMatchingFiles();
 
-    Logger.taskComplete("Found " + codeFiles.size() + " files");
+    CliFormattingLogger.taskComplete("Found " + codeFiles.size() + " files");
 
     SarifProcessor sarifProcessor = new SarifProcessor(sarifPath);
 
@@ -58,14 +60,14 @@ public class Analyser {
 
     List<Result> results = getResults(sarif);
 
-    Logger.taskComplete("Sarif read. Found " + results.size() + " results");
+    CliFormattingLogger.taskComplete("Sarif read. Found " + results.size() + " results");
 
     LanguageParser parser = languageParsers.get("java");
 
     List<ParsedFile> parsedFiles = new ArrayList<>();
 
     try (ProgressBar parsedFilesProgress =
-        Logger.createProgressBar("  Parsing Files", codeFiles.size())) {
+        CliFormattingLogger.createProgressBar("  Parsing Files", codeFiles.size())) {
 
       for (int i = 0; i < codeFiles.size(); i++) {
         parsedFiles.add(parser.parse(codeFiles.get(i)));
@@ -75,15 +77,15 @@ public class Analyser {
       }
     }
 
-    Logger.taskComplete("Parsed " + parsedFiles.size() + " files");
+    CliFormattingLogger.taskComplete("Parsed " + parsedFiles.size() + " files");
 
     CallGraph graph = parser.buildCallGraph(parsedFiles);
 
-    Logger.taskComplete("Built call graph");
+    CliFormattingLogger.taskComplete("Built call graph");
 
     List<ReachabilityResult> reachabilityResults = new ArrayList<>();
 
-    Logger.info("Performing reachability analysis on " + results.size() + " results");
+    log.info("Performing reachability analysis on " + results.size() + " results");
 
     for (Result result : results) {
       Location location = getLocation(result);
@@ -97,7 +99,7 @@ public class Analyser {
       }
     }
 
-    Logger.taskComplete("Analysed " + reachabilityResults.size() + " results");
+    CliFormattingLogger.taskComplete("Analysed " + reachabilityResults.size() + " results");
 
     LocalContextProvider localContextProvider = new LocalContextProvider(sourceCodeRoot);
 
@@ -105,19 +107,20 @@ public class Analyser {
 
     sarifProcessor.writeSarif(sarif, outputPath);
 
-    Logger.taskComplete("Updated sarif results written to " + outputPath);
+    CliFormattingLogger.taskComplete("Updated sarif results written to " + outputPath);
 
     if (!StringUtils.isEmpty(serverUrl)) {
       SarifUploader sarifUploader = new SarifUploader(outputPath, serverUrl);
 
       sarifUploader.uploadSarif();
 
-      Logger.taskComplete("Sarif uploaded to " + serverUrl);
+      CliFormattingLogger.taskComplete("Sarif uploaded to " + serverUrl);
     }
 
     Date end = new Date();
 
-    Logger.taskComplete("Analysis complete, took " + (end.getTime() - start.getTime()) + "ms");
+    CliFormattingLogger.taskComplete(
+        "Analysis complete, took " + (end.getTime() - start.getTime()) + "ms");
 
     printSummary(reachabilityResults);
   }
@@ -136,7 +139,7 @@ public class Analyser {
         .forEach(
             entry -> data.put("Confidence " + entry.getKey(), String.valueOf(entry.getValue())));
 
-    Logger.printSummaryTable("Analysis Summary", data);
+    CliFormattingLogger.printSummaryTable("Analysis Summary", data);
   }
 
   private void addReachabilityAnalysisToResult(

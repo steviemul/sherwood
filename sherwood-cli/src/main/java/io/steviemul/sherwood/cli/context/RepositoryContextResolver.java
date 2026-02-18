@@ -1,6 +1,7 @@
 package io.steviemul.sherwood.cli.context;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.steviemul.sherwood.cli.logging.CliFormattingLogger;
 import io.steviemul.sherwood.cli.utils.CommandUtils;
 import io.steviemul.sherwood.sarif.PropertyBag;
 import io.steviemul.sherwood.sarif.SarifSchema210;
@@ -91,9 +92,20 @@ public class RepositoryContextResolver {
     Optional<String> status = CommandUtils.runCommand(root, GIT_COMMAND_STATUS);
 
     if (status.isPresent()) {
+
+      log.info("Found a valid git repository, reading context");
+
       String repo = getRepository(root);
+
+      CliFormattingLogger.taskComplete("Repository : " + repo);
+
       String commit = getCommit(root);
+
+      CliFormattingLogger.taskComplete("Commit : " + commit);
+
       String branch = getBranch(root);
+
+      CliFormattingLogger.taskComplete("Branch : " + branch);
 
       return new SherwoodConfig(repo, commit, branch);
     }

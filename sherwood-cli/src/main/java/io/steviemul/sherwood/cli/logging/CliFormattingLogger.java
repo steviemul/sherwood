@@ -9,7 +9,7 @@ import me.tongfei.progressbar.ProgressBarStyle;
 import org.fusesource.jansi.Ansi;
 
 /** Utility class for formatted CLI output with colors, progress bars, and tables. */
-public class Logger {
+public class CliFormattingLogger {
 
   private static final String CHECKMARK = "✓";
   private static final String CROSS = "✗";
@@ -36,7 +36,7 @@ public class Logger {
 
   /** Print an error message. */
   public static void error(String message) {
-    System.out.println(Ansi.ansi().fgRed().a("✗").reset().a(" " + message));
+    System.err.println(Ansi.ansi().fgRed().a("✗").reset().a(" " + message));
   }
 
   /** Create a progress bar for tracking task progress. */

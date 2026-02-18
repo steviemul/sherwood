@@ -1,0 +1,7 @@
+<configuration>
+  <appender name="SHERWOOD_CLI" class="io.steviemul.sherwood.cli.logging.CliLogbackAppender" />
+
+  <root level="INFO">
+    <appender-ref ref="SHERWOOD_CLI" />
+  </root>
+</configuration>

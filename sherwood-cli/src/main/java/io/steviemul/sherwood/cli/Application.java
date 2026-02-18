@@ -1,6 +1,6 @@
 package io.steviemul.sherwood.cli;
 
-import io.steviemul.sherwood.cli.logging.Logger;
+import io.steviemul.sherwood.cli.logging.CliFormattingLogger;
 import io.steviemul.sherwood.cli.options.CliOptions;
 import io.steviemul.sherwood.cli.processor.Analyser;
 import java.util.concurrent.Callable;
@@ -24,7 +24,7 @@ public class Application implements Callable<Integer> {
 
   @Override
   public Integer call() {
-    Logger.printBanner();
+    CliFormattingLogger.printBanner();
 
     Analyser analyser =
         Analyser.builder()

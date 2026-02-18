@@ -1,11 +1,13 @@
 package io.steviemul.sherwood.cli.processor;
 
 import io.steviemul.sherwood.cli.http.SherwoodApiClient;
-import io.steviemul.sherwood.cli.logging.Logger;
+import io.steviemul.sherwood.cli.logging.CliFormattingLogger;
 import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 public class SarifUploader {
 
   private final Path sarifPath;
@@ -18,12 +20,12 @@ public class SarifUploader {
       boolean success = apiClient.uploadSarif(sarifPath.toFile());
 
       if (success) {
-        Logger.taskComplete("Sarif uploaded successfully");
+        CliFormattingLogger.taskComplete("Sarif uploaded successfully");
       } else {
-        Logger.taskFailed("Unable to upload sarif");
+        CliFormattingLogger.taskFailed("Unable to upload sarif");
       }
     } catch (Exception e) {
-      Logger.error("Error upload sarif " + e.getMessage());
+      log.error("Error upload sarif " + e.getMessage());
     }
   }
 }
