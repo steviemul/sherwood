@@ -3,7 +3,6 @@ package io.steviemul.sherwood.server.config;
 import io.steviemul.sherwood.server.service.rules.RulesVectorService;
 import io.steviemul.sherwood.server.service.rules.TemplateService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -14,11 +13,10 @@ import org.springframework.context.annotation.Configuration;
 public class VectorServicesConfiguration {
 
   private final TemplateService templateService;
-  private final EmbeddingModel ollamaTextEmbeddingModel;
 
   @Bean("ollamaRulesVectorService")
   public RulesVectorService ollamaRulesVectorService(
       @Qualifier("ollamaRulesVectorStore") VectorStore vectorStore) {
-    return new RulesVectorService(vectorStore, templateService, ollamaTextEmbeddingModel);
+    return new RulesVectorService(vectorStore, templateService);
   }
 }
