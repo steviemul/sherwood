@@ -19,6 +19,7 @@ public class CommandUtils {
 
       // Capture output
       StringBuilder output = new StringBuilder();
+
       try (BufferedReader reader =
           new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 
