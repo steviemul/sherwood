@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -29,7 +29,17 @@ import type { SarifResponse } from '../types/api';
 type SortField = 'vendor' | 'repository' | 'created';
 type SortOrder = 'asc' | 'desc';
 
+const SORTABLE_FIELDS: SortField[] = ['vendor', 'repository', 'created'];
+
 export const SarifListPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize sorting from URL params or defaults
+  const urlSortField = searchParams.get('sortField') as SortField;
+  const urlSortDir = searchParams.get('sortDir') as SortOrder;
+  const initialSortField = (urlSortField && SORTABLE_FIELDS.includes(urlSortField)) ? urlSortField : 'created';
+  const initialSortOrder = (urlSortDir === 'asc' || urlSortDir === 'desc') ? urlSortDir : 'desc';
+  
   const [sarifs, setSarifs] = useState<SarifResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +47,8 @@ export const SarifListPage = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>('created');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = useState<SortField>(initialSortField);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(initialSortOrder);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
@@ -62,6 +72,18 @@ export const SarifListPage = () => {
   useEffect(() => {
     fetchSarifs();
   }, []);
+
+  // Sync URL params to state (handles browser back/forward)
+  useEffect(() => {
+    const urlSortField = searchParams.get('sortField') as SortField;
+    const urlSortDir = searchParams.get('sortDir') as SortOrder;
+    
+    const newSortField = (urlSortField && SORTABLE_FIELDS.includes(urlSortField)) ? urlSortField : 'created';
+    const newSortOrder = (urlSortDir === 'asc' || urlSortDir === 'desc') ? urlSortDir : 'desc';
+    
+    setSortField(newSortField);
+    setSortOrder(newSortOrder);
+  }, [searchParams]);
 
   const handleUploadClick = () => {
     setUploadDialogOpen(true);
@@ -127,8 +149,14 @@ export const SarifListPage = () => {
 
   const handleSort = (field: SortField) => {
     const isAsc = sortField === field && sortOrder === 'asc';
-    setSortOrder(isAsc ? 'desc' : 'asc');
-    setSortField(field);
+    const newSortOrder = isAsc ? 'desc' : 'asc';
+    
+    // Update URL params (skip defaults to keep URL clean)
+    if (field === 'created' && newSortOrder === 'desc') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ sortField: field, sortDir: newSortOrder });
+    }
   };
 
   const sortedSarifs = [...sarifs].sort((a, b) => {

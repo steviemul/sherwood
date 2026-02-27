@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -26,13 +26,23 @@ import type { SarifResultResponse } from '../types/api';
 type SortField = 'location' | 'confidence' | 'reachable' | 'created' | 'updated' | 'ruleId';
 type SortOrder = 'asc' | 'desc';
 
+const SORTABLE_FIELDS: SortField[] = ['location', 'confidence', 'reachable', 'created', 'updated', 'ruleId'];
+
 export const ResultsListPage = () => {
   const { sarifId } = useParams<{ sarifId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize sorting from URL params or defaults
+  const urlSortField = searchParams.get('sortField') as SortField;
+  const urlSortDir = searchParams.get('sortDir') as SortOrder;
+  const initialSortField = (urlSortField && SORTABLE_FIELDS.includes(urlSortField)) ? urlSortField : 'created';
+  const initialSortOrder = (urlSortDir === 'asc' || urlSortDir === 'desc') ? urlSortDir : 'desc';
+  
   const [results, setResults] = useState<SarifResultResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<SortField>('created');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = useState<SortField>(initialSortField);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(initialSortOrder);
   const [locationFilterVisible, setLocationFilterVisible] = useState(false);
   const [ruleIdFilterVisible, setRuleIdFilterVisible] = useState(false);
   const [locationFilter, setLocationFilter] = useState('');
@@ -61,10 +71,28 @@ export const ResultsListPage = () => {
     fetchResults();
   }, [sarifId]);
 
+  // Sync URL params to state (handles browser back/forward)
+  useEffect(() => {
+    const urlSortField = searchParams.get('sortField') as SortField;
+    const urlSortDir = searchParams.get('sortDir') as SortOrder;
+    
+    const newSortField = (urlSortField && SORTABLE_FIELDS.includes(urlSortField)) ? urlSortField : 'created';
+    const newSortOrder = (urlSortDir === 'asc' || urlSortDir === 'desc') ? urlSortDir : 'desc';
+    
+    setSortField(newSortField);
+    setSortOrder(newSortOrder);
+  }, [searchParams]);
+
   const handleSort = (field: SortField) => {
     const isAsc = sortField === field && sortOrder === 'asc';
-    setSortOrder(isAsc ? 'desc' : 'asc');
-    setSortField(field);
+    const newSortOrder = isAsc ? 'desc' : 'asc';
+    
+    // Update URL params (skip defaults to keep URL clean)
+    if (field === 'created' && newSortOrder === 'desc') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ sortField: field, sortDir: newSortOrder });
+    }
   };
 
   const filteredResults = results.filter(result => {
@@ -74,8 +102,8 @@ export const ResultsListPage = () => {
   });
 
   const sortedResults = [...filteredResults].sort((a, b) => {
-    let aValue: string | number | boolean = a[sortField];
-    let bValue: string | number | boolean = b[sortField];
+    const aValue: string | number | boolean = a[sortField];
+    const bValue: string | number | boolean = b[sortField];
 
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return sortOrder === 'asc' 
