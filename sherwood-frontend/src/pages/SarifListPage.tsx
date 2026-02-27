@@ -18,7 +18,10 @@ import {
   Typography,
   Box,
   TableSortLabel,
+  IconButton,
+  Snackbar,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload } from '@fortawesome/free-solid-svg-icons';
 import type { SarifResponse } from '../types/api';
@@ -36,6 +39,8 @@ export const SarifListPage = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('created');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   const fetchSarifs = async () => {
     try {
@@ -99,6 +104,24 @@ export const SarifListPage = () => {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDelete = async (sarifId: string) => {
+    try {
+      const response = await fetch(`/api/sherwood/sarifs/${sarifId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.statusText}`);
+      }
+
+      setSnackbarMessage('Sarif deleted successfully');
+      setSnackbarOpen(true);
+      await fetchSarifs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
     }
   };
 
@@ -189,6 +212,7 @@ export const SarifListPage = () => {
                 </TableSortLabel>
               </TableCell>
               <TableCell>Updated</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -221,11 +245,21 @@ export const SarifListPage = () => {
                 <TableCell>{sarif.identifier}</TableCell>
                 <TableCell>{new Date(sarif.created).toLocaleString()}</TableCell>
                 <TableCell>{new Date(sarif.updated).toLocaleString()}</TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleDelete(sarif.id)}
+                    aria-label="delete"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
             ))}
             {sortedSarifs.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   <Typography variant="body2" color="text.secondary">
                     No SARIF files found. Upload one to get started.
                   </Typography>
@@ -271,6 +305,14 @@ export const SarifListPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };

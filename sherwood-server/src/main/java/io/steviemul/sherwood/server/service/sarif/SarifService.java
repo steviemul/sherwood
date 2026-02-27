@@ -116,6 +116,12 @@ public class SarifService {
                     HttpStatus.NOT_FOUND, "Sarif not found with id: " + id));
   }
 
+  public void deleteSarif(UUID id) {
+
+    resultsService.deleteResultsBySarif(id);
+    sarifRepository.deleteById(id);
+  }
+
   private SarifResponse addDownloadUrl(SarifResponse sarifResponse) {
 
     String downloadUrl = storageService.getDownloadUrl(sarifResponse.storageKey());

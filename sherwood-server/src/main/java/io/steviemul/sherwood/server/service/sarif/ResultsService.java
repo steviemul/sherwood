@@ -38,6 +38,10 @@ public class ResultsService {
     resultsRepository.saveAll(results);
   }
 
+  public void deleteResultsBySarif(UUID sarifId) {
+    resultsRepository.deleteBySarifId(sarifId);
+  }
+
   public List<SarifResult> getResultsBySarifId(UUID sarifId) {
     return resultsRepository.findBySarifId(sarifId);
   }
