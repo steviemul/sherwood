@@ -303,11 +303,24 @@ export const SarifListPage = () => {
         <DialogContent>
           <Box sx={{ pt: 2 }}>
             <input
+              id="file-upload-input"
               type="file"
               accept=".json,.sarif"
               onChange={handleFileChange}
-              style={{ display: 'block', marginBottom: '16px' }}
+              style={{ display: 'none' }}
             />
+            <label htmlFor="file-upload-input">
+              <Button
+                variant="contained"
+                color="primary"
+                component="span"
+                startIcon={<FontAwesomeIcon icon={faUpload} />}
+                fullWidth
+                sx={{ mb: 2 }}
+              >
+                Choose File
+              </Button>
+            </label>
             {selectedFile && (
               <Typography variant="body2" color="text.secondary">
                 Selected: {selectedFile.name}

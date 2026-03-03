@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import type { SarifResultResponse } from '../types/api';
+import type { SarifResultResponse, SarifResponse } from '../types/api';
 
 type SortField = 'location' | 'confidence' | 'reachable' | 'created' | 'updated' | 'ruleId';
 type SortOrder = 'asc' | 'desc';
@@ -39,6 +39,7 @@ export const ResultsListPage = () => {
   const initialSortOrder = (urlSortDir === 'asc' || urlSortDir === 'desc') ? urlSortDir : 'desc';
   
   const [results, setResults] = useState<SarifResultResponse[]>([]);
+  const [sarifFilename, setSarifFilename] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>(initialSortField);
@@ -49,18 +50,28 @@ export const ResultsListPage = () => {
   const [ruleIdFilter, setRuleIdFilter] = useState('');
 
   useEffect(() => {
-    const fetchResults = async () => {
+    const fetchData = async () => {
       if (!sarifId) return;
       
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`/api/sherwood/sarifs/${sarifId}/results`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch results: ${response.statusText}`);
+        
+        // Fetch SARIF details for filename
+        const sarifResponse = await fetch(`/api/sherwood/sarifs/${sarifId}`);
+        if (!sarifResponse.ok) {
+          throw new Error(`Failed to fetch SARIF details: ${sarifResponse.statusText}`);
         }
-        const data = await response.json();
-        setResults(data);
+        const sarifData: SarifResponse = await sarifResponse.json();
+        setSarifFilename(sarifData.filename);
+        
+        // Fetch results
+        const resultsResponse = await fetch(`/api/sherwood/sarifs/${sarifId}/results`);
+        if (!resultsResponse.ok) {
+          throw new Error(`Failed to fetch results: ${resultsResponse.statusText}`);
+        }
+        const resultsData = await resultsResponse.json();
+        setResults(resultsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -68,7 +79,7 @@ export const ResultsListPage = () => {
       }
     };
 
-    fetchResults();
+    fetchData();
   }, [sarifId]);
 
   // Sync URL params to state (handles browser back/forward)
@@ -151,7 +162,7 @@ export const ResultsListPage = () => {
 
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
-          Results for SARIF {sarifId?.substring(0, 8)}...
+          Results for {sarifFilename || 'SARIF'}
         </Typography>
       </Box>
 

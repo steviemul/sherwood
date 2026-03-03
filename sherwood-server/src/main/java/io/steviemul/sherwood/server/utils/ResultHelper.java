@@ -2,6 +2,7 @@ package io.steviemul.sherwood.server.utils;
 
 import io.steviemul.sherwood.sarif.Fingerprints;
 import io.steviemul.sherwood.sarif.PartialFingerprints;
+import io.steviemul.sherwood.sarif.PropertyBag;
 import io.steviemul.sherwood.sarif.Result;
 import io.steviemul.sherwood.server.entity.sarif.AnalysisPath;
 import io.steviemul.sherwood.server.entity.sarif.ResultAnalysis;
@@ -85,12 +86,13 @@ public class ResultHelper {
   @SuppressWarnings("unchecked")
   public static ResultAnalysis getAnalysis(Result result) {
 
+    PropertyBag properties = Optional.ofNullable(result.getProperties()).orElse(new PropertyBag());
+
+    Map<String, Object> additionalProperties =
+        Optional.of(properties.getAdditionalProperties()).orElse(Collections.emptyMap());
+
     Map<String, Object> analysis =
-        (Map<String, Object>)
-            result
-                .getProperties()
-                .getAdditionalProperties()
-                .getOrDefault(ANALYSIS, Collections.emptyMap());
+        (Map<String, Object>) additionalProperties.getOrDefault(ANALYSIS, Collections.emptyMap());
 
     return new ResultAnalysis(
         (double) analysis.getOrDefault(CONFIDENCE, -1.0),

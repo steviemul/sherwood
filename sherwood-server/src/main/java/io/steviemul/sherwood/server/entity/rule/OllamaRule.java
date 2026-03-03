@@ -1,11 +1,14 @@
 package io.steviemul.sherwood.server.entity.rule;
 
+import io.steviemul.sherwood.server.converter.JsonToMapConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Map;
 import java.util.UUID;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,11 +34,10 @@ public class OllamaRule {
   @Column(columnDefinition = "text")
   private String content;
 
-  // For JSON, simplest is to store as string; can be changed to JsonNode or Map with proper type
-  // mapping
+  @Convert(converter = JsonToMapConverter.class)
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "json")
-  private String metadata;
+  private Map<String, Object> metadata;
 
   @JdbcTypeCode(SqlTypes.VECTOR)
   @Column(name = "embedding", columnDefinition = "vector(768)")
