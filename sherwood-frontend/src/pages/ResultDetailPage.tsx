@@ -40,7 +40,7 @@ import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import mermaid from 'mermaid';
-import type { SarifResultResponse, SarifResultSimilarityResponse } from '../types/api';
+import type { SarifResultResponse, SarifResultSimilarityResponse, ResultSimilarityScore } from '../types/api';
 import { useThemeContext } from '../context/ThemeContext';
 
 type SimilaritySortField = 'location' | 'lineNumber' | 'ruleId' | 'vendor' | 'similarity';
@@ -61,7 +61,7 @@ export const ResultDetailPage = () => {
   const [similaritiesError, setSimilaritiesError] = useState<string | null>(null);
   const [similaritiesFetched, setSimilaritiesFetched] = useState(false);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
-  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [selectedReason, setSelectedReason] = useState<ResultSimilarityScore | null>(null);
   const [similaritySortField, setSimilaritySortField] = useState<SimilaritySortField>('similarity');
   const [similaritySortOrder, setSimilaritySortOrder] = useState<'asc' | 'desc'>('desc');
   
@@ -128,8 +128,8 @@ export const ResultDetailPage = () => {
     }
   };
 
-  const handleSimilarityClick = (reason: string) => {
-    setSelectedReason(reason);
+  const handleSimilarityClick = (similarityScore: ResultSimilarityScore) => {
+    setSelectedReason(similarityScore);
     setReasonDialogOpen(true);
   };
 
@@ -168,8 +168,16 @@ export const ResultDetailPage = () => {
   };
 
   const sortedSimilarities = [...similarities].sort((a, b) => {
-    let aValue: string | number = a[similaritySortField];
-    let bValue: string | number = b[similaritySortField];
+    let aValue: string | number;
+    let bValue: string | number;
+    
+    if (similaritySortField === 'similarity') {
+      aValue = a.similarity.totalScore;
+      bValue = b.similarity.totalScore;
+    } else {
+      aValue = a[similaritySortField];
+      bValue = b[similaritySortField];
+    }
 
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       return similaritySortOrder === 'asc' 
@@ -475,10 +483,10 @@ export const ResultDetailPage = () => {
                         <TableCell>
                           <Button
                             size="small"
-                            onClick={() => handleSimilarityClick(similarity.reason)}
+                            onClick={() => handleSimilarityClick(similarity.similarity)}
                             sx={{ textTransform: 'none' }}
                           >
-                            {(similarity.similarity * 100).toFixed(0)}%
+                            {(similarity.similarity.totalScore * 100).toFixed(2)}%
                           </Button>
                         </TableCell>
                         <TableCell>
@@ -659,9 +667,57 @@ export const ResultDetailPage = () => {
       >
         <DialogTitle>Similarity Reason</DialogTitle>
         <DialogContent>
-          <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mt: 1 }}>
-            {selectedReason}
-          </Typography>
+          {selectedReason && (
+            <Box sx={{ mt: 1 }}>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Title</strong></TableCell>
+                      <TableCell><strong>Score</strong></TableCell>
+                      <TableCell><strong>Weight</strong></TableCell>
+                      <TableCell><strong>Additional Information</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedReason.reasons.map((reason, index) => (
+                      <TableRow 
+                        key={index}
+                        sx={{ 
+                          opacity: reason.available ? 1 : 0.5,
+                          color: reason.available ? 'text.primary' : 'text.secondary'
+                        }}
+                      >
+                        <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                          {reason.title}
+                        </TableCell>
+                        <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                          {(reason.score * 100).toFixed(2)}%
+                        </TableCell>
+                        <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                          {(reason.weight * 100).toFixed(2)}%
+                        </TableCell>
+                        <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                          {reason.additionalInformation || 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Stack spacing={1}>
+                <Typography variant="body2">
+                  <strong>Available Score:</strong> {(selectedReason.availableScore * 100).toFixed(2)}%
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total Score:</strong> {(selectedReason.totalScore * 100).toFixed(2)}%
+                </Typography>
+              </Stack>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReasonDialogOpen(false)}>Close</Button>
@@ -828,26 +884,57 @@ export const ResultDetailPage = () => {
             {selectedSimilarity && (
               <Card variant="outlined" sx={{ backgroundColor: 'action.hover' }}>
                 <CardContent>
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Similarity Score
-                      </Typography>
-                      <Chip 
-                        label={`${(selectedSimilarity.similarity * 100).toFixed(0)}%`}
-                        color="primary"
-                        size="medium"
-                      />
-                    </Box>
-                    <Divider />
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Similarity Reason
-                      </Typography>
-                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                        {selectedSimilarity.reason}
-                      </Typography>
-                    </Box>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Similarity Analysis
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell><strong>Title</strong></TableCell>
+                          <TableCell><strong>Score</strong></TableCell>
+                          <TableCell><strong>Weight</strong></TableCell>
+                          <TableCell><strong>Additional Information</strong></TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedSimilarity.similarity.reasons.map((reason, index) => (
+                          <TableRow 
+                            key={index}
+                            sx={{ 
+                              opacity: reason.available ? 1 : 0.5,
+                              color: reason.available ? 'text.primary' : 'text.secondary'
+                            }}
+                          >
+                            <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                              {reason.title}
+                            </TableCell>
+                            <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                              {(reason.score * 100).toFixed(2)}%
+                            </TableCell>
+                            <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                              {(reason.weight * 100).toFixed(2)}%
+                            </TableCell>
+                            <TableCell sx={{ color: reason.available ? 'text.primary' : 'text.secondary' }}>
+                              {reason.additionalInformation || 'N/A'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  
+                  <Divider sx={{ my: 2 }} />
+                  
+                  <Stack spacing={1}>
+                    <Typography variant="body2">
+                      <strong>Available Score:</strong> {(selectedSimilarity.similarity.availableScore * 100).toFixed(2)}%
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Total Score:</strong> {(selectedSimilarity.similarity.totalScore * 100).toFixed(2)}%
+                    </Typography>
                   </Stack>
                 </CardContent>
               </Card>

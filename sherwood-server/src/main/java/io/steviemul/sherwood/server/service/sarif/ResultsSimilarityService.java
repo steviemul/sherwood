@@ -26,6 +26,8 @@ public class ResultsSimilarityService {
   private static final int LINE_NUMBER_THRESHOLD = 5;
   private static final double SIMILARITY_THRESHOLD = 0.0;
 
+  private static final String INVALID_FINGERPRINT = "requires login";
+
   public List<SarifResultSimilarityResponse> findSimilarResults(UUID sarifId, UUID resultId) {
 
     SarifResult result = getResult(sarifId, resultId);
@@ -63,8 +65,10 @@ public class ResultsSimilarityService {
     ResultSimilarityScore similarityScore =
         resultsScoringService.getSimilarityScore(result, candidate);
 
-    if (result.getFingerprint().equals(candidate.getFingerprint())) {
-      return getFingerprintMatchesSimilarityResponse(candidate);
+    if (areFingerprintsValid(result, candidate)) {
+      if (result.getFingerprint().equals(candidate.getFingerprint())) {
+        return getFingerprintMatchesSimilarityResponse(candidate);
+      }
     }
 
     return new SarifResultSimilarityResponse(
@@ -77,6 +81,11 @@ public class ResultsSimilarityService {
         candidate.getSnippet(),
         candidate.getSarif().getVendor(),
         similarityScore);
+  }
+
+  private boolean areFingerprintsValid(SarifResult target, SarifResult candidate) {
+    return (!INVALID_FINGERPRINT.equals(target.getFingerprint())
+        && !INVALID_FINGERPRINT.equals(candidate.getFingerprint()));
   }
 
   private SarifResultSimilarityResponse getFingerprintMatchesSimilarityResponse(

@@ -16,7 +16,16 @@ public class ResultsScoringService {
   public ResultSimilarityScore getSimilarityScore(SarifResult target, SarifResult candidate) {
     List<SimilarityScore> scores = getScores(target, candidate);
 
-    double totalScore = scores.stream().mapToDouble(score -> score.score() * score.weight()).sum();
+    double totalScoreSum =
+        scores.stream().mapToDouble(score -> score.score() * score.weight()).sum();
+
+    double totalWeights = scores.stream().mapToDouble(SimilarityScore::weight).sum();
+
+    double availableScoreSum =
+        scores.stream()
+            .filter(SimilarityScore::available)
+            .mapToDouble(score -> score.score() * score.weight())
+            .sum();
 
     double availableWeights =
         scores.stream()
@@ -24,7 +33,9 @@ public class ResultsScoringService {
             .mapToDouble(SimilarityScore::weight)
             .sum();
 
-    double availableScore = totalScore / availableWeights;
+    // Normalize both scores by dividing by their respective weight sums
+    double totalScore = totalWeights > 0 ? totalScoreSum / totalWeights : 0.0;
+    double availableScore = availableWeights > 0 ? availableScoreSum / availableWeights : 0.0;
 
     return new ResultSimilarityScore(availableScore, totalScore, scores);
   }

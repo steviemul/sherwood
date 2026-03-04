@@ -26,6 +26,20 @@ export interface SarifResultResponse {
   updated: string;
 }
 
+export interface SimilarityScore {
+  title: string;
+  score: number;
+  weight: number;
+  available: boolean;
+  additionalInformation: string;
+}
+
+export interface ResultSimilarityScore {
+  availableScore: number;
+  totalScore: number;
+  reasons: SimilarityScore[];
+}
+
 export interface SarifResultSimilarityResponse {
   matchingResultId: string;
   sarifId: string;
@@ -33,8 +47,7 @@ export interface SarifResultSimilarityResponse {
   lineNumber: number;
   ruleId: string;
   vendor: string;
-  similarity: number;
-  reason: string;
+  similarity: ResultSimilarityScore;
   description?: string;
   snippet?: string;
 }
